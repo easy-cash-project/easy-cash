@@ -7,16 +7,23 @@ import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
 let _connection: ReturnType<typeof postgres> | null = null;
+let _initialized = false;
 
 export async function getDb() {
-  if (!_db && process.env.DATABASE_URL) {
+  if (!_initialized && process.env.DATABASE_URL) {
+    _initialized = true;
     try {
-      _connection = postgres(process.env.DATABASE_URL);
+      console.log("[Database] Initializing PostgreSQL connection...");
+      _connection = postgres(process.env.DATABASE_URL, {
+        prepare: false,
+      });
       _db = drizzle(_connection);
+      console.log("[Database] Connected successfully");
     } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
+      console.error("[Database] Failed to connect:", error);
       _db = null;
       _connection = null;
+      _initialized = false;
     }
   }
   return _db;
