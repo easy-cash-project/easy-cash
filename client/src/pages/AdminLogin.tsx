@@ -20,17 +20,21 @@ export default function AdminLogin() {
       console.log("Login successful:", data);
       toast.success("Вход выполнен успешно!");
       
-      // Invalidate the auth cache to force a refetch
+      // Set user data in cache immediately
+      utils.auth.me.setData(undefined, data.user);
+      
+      // Invalidate and refetch the auth cache
       await utils.auth.me.invalidate();
+      
+      // Wait a bit for the refetch to complete
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       // Clear form
       setOpenId("");
       setPassword("");
       
       // Redirect to admin panel
-      setTimeout(() => {
-        setLocation("/moneymaker777/orders");
-      }, 300);
+      setLocation("/moneymaker777/orders");
     },
     onError: (err) => {
       console.error("Login error:", err);
