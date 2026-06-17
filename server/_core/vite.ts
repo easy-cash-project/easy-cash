@@ -48,7 +48,11 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  const distPath = path.resolve(import.meta.dirname, "../../dist/public");
+  // import.meta.dirname is /opt/render/project/src/server/_core
+  // We need /opt/render/project/dist/public
+  // So we go up 3 levels: _core -> server -> src -> project
+  // Then down into dist/public
+  const distPath = path.resolve(import.meta.dirname, "../../../dist/public");
   console.log(`Serving static files from: ${distPath}`);
   
   if (!fs.existsSync(distPath)) {
