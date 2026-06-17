@@ -2,9 +2,11 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
+import { sdk } from "./_core/sdk";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { nanoid } from "nanoid";
+import { COOKIE_NAME } from "@shared/const";
 import {
   getAllCurrencies, getCurrencyById, createCurrency, updateCurrency, deleteCurrency,
   getAllRates, getRateForPair, createRate, updateRate, deleteRate,
@@ -53,9 +55,14 @@ export const appRouter = router({
           });
         }
         
-        // Set session cookie
+        // Create JWT session token
+        const sessionToken = await sdk.createSessionToken(user.openId, {
+          name: user.name || user.openId,
+        });
+        
+        // Set session cookie with JWT token
         const cookieOptions = getSessionCookieOptions(ctx.req);
-        ctx.res.cookie(COOKIE_NAME, user.openId, cookieOptions);
+        ctx.res.cookie(COOKIE_NAME, sessionToken, cookieOptions);
         
         return { success: true, user };
       }),
