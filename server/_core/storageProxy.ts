@@ -15,6 +15,10 @@ export function registerStorageProxy(app: Express) {
     }
 
     try {
+      if (!ENV.forgeApiUrl) {
+        res.status(500).send("Storage proxy not configured");
+        return;
+      }
       const forgeUrl = new URL(
         "v1/storage/presign/get",
         ENV.forgeApiUrl.replace(/\/+$/, "") + "/",
