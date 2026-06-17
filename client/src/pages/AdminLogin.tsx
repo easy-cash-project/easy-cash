@@ -13,17 +13,24 @@ export default function AdminLogin() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const utils = trpc.useUtils();
 
   const loginMutation = trpc.auth.login.useMutation({
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       console.log("Login successful:", data);
       toast.success("Вход выполнен успешно!");
+      
+      // Invalidate the auth cache to force a refetch
+      await utils.auth.me.invalidate();
+      
+      // Clear form
       setOpenId("");
       setPassword("");
+      
       // Redirect to admin panel
       setTimeout(() => {
         setLocation("/moneymaker777/orders");
-      }, 500);
+      }, 300);
     },
     onError: (err) => {
       console.error("Login error:", err);
