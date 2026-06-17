@@ -48,17 +48,31 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  // import.meta.dirname is /opt/render/project/src/server/_core
-  // We need /opt/render/project/dist/public
-  // So we go up 3 levels: _core -> server -> src -> project
-  // Then down into dist/public
-  const distPath = path.resolve(import.meta.dirname, "../../../dist/public");
-  console.log(`Serving static files from: ${distPath}`);
-  
-  if (!fs.existsSync(distPath)) {
-    console.error(
-      `Could not find the build directory: ${distPath}, make sure to build the client first`
-    );
+  // Try multiple possible paths for dist/public
+  const possiblePaths = [
+    path.resolve(import.meta.dirname, "../../../dist/public"),
+    path.resolve(import.meta.dirname, "../../dist/public"),
+    path.resolve(import.meta.dirname, "../dist/public"),
+    path.resolve(process.cwd(), "dist/public"),
+  ];
+
+  let distPath: string | null = null;
+  for (const p of possiblePaths) {
+    console.log(`Checking for dist at: ${p}`);
+    if (fs.existsSync(p)) {
+      distPath = p;
+      console.log(`Found dist at: ${distPath}`);
+      break;
+    }
+  }
+
+  if (!distPath) {
+    console.error(`Could not find dist/public in any of these locations:`);
+    possiblePaths.forEach(p => console.error(`  - ${p}`));
+    // Serve a 500 error page instead of crashing
+    app.use("*", (_req, res) => {
+      res.status(500).send("Build directory not found. Please rebuild the application.");
+    });
     return;
   }
 
