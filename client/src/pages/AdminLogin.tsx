@@ -18,27 +18,28 @@ export default function AdminLogin() {
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: async (data) => {
       console.log("Login successful:", data);
-      toast.success("Вход выполнен успешно!");
       
-      // Store JWT token in localStorage
+      // Store JWT token in localStorage FIRST - before any other operations
       if (data.token) {
         localStorage.setItem("auth-token", data.token);
+        console.log("Token stored in localStorage");
       }
+      
+      toast.success("Вход выполнен успешно!");
       
       // Set user data in cache immediately
       utils.auth.me.setData(undefined, data.user);
-      
-      // Invalidate and refetch the auth cache
-      await utils.auth.me.invalidate();
-      
-      // Wait a bit for the refetch to complete
-      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log("User data set in cache", data.user);
       
       // Clear form
       setOpenId("");
       setPassword("");
       
+      // Small delay to ensure token is available in TRPC client
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       // Redirect to admin panel
+      console.log("Redirecting to admin panel");
       setLocation("/moneymaker777/orders");
     },
     onError: (err) => {
