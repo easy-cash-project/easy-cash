@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: easy-cash
+    env: node
+    plan: free
+    buildCommand: npm install -g pnpm && pnpm install && pnpm build
+    startCommand: pnpm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: easy-cash-db
+          property: connectionString
+      - key: PORT
+        value: 3000
+
+databases:
+  - name: easy-cash-db
+    databaseName: easy_cash
+    user: easy_cash_user
+    plan: free
