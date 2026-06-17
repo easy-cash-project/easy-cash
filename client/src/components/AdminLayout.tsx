@@ -25,16 +25,14 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   }
 
   if (!isAuthenticated) {
+    // Redirect to login page
+    if (typeof window !== 'undefined') {
+      window.location.href = '/moneymaker777/login';
+    }
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
-          <p className="text-muted-foreground">Необходима авторизация</p>
-          <a
-            href={getLoginUrl()}
-            className="inline-flex items-center px-6 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
-          >
-            Войти
-          </a>
+          <p className="text-muted-foreground">Перенаправление на страницу входа...</p>
         </div>
       </div>
     );

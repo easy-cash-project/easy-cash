@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 import Acquiring from "./pages/Acquiring";
 import OrderStatus from "./pages/OrderStatus";
 import OrderConfirmation from "./pages/OrderConfirmation";
+import AdminLogin from "./pages/AdminLogin";
 import AdminOrders from "./pages/admin/AdminOrders";
 import AdminRates from "./pages/admin/AdminRates";
 import AdminAddresses from "./pages/admin/AdminAddresses";
@@ -21,6 +22,7 @@ function Router() {
       <Route path={"/order/:orderId"} component={OrderConfirmation} />
       <Route path={"/status"} component={OrderStatus} />
       <Route path={"/status/:orderId"} component={OrderStatus} />
+      <Route path={"/moneymaker777/login"} component={AdminLogin} />
       <Route path={"/moneymaker777"} component={AdminOrders} />
       <Route path={"/moneymaker777/orders"} component={AdminOrders} />
       <Route path={"/moneymaker777/rates"} component={AdminRates} />

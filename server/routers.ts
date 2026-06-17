@@ -10,7 +10,7 @@ import {
   getAllRates, getRateForPair, createRate, updateRate, deleteRate,
   getAllAddresses, getAddressesForCurrency, createAddress, updateAddress, deleteAddress,
   getAllOrders, getOrderByPublicId, createOrder, updateOrderStatus,
-  createUser
+  createUser, getUserByOpenId
 } from "./db";
 import { notifyOwner } from "./_core/notification";
 
@@ -31,18 +31,48 @@ export const appRouter = router({
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
+    login: publicProcedure
+      .input(z.object({
+        openId: z.string().min(1),
+        password: z.string().min(1),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const user = await getUserByOpenId(input.openId);
+        
+        if (!user) {
+          throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "Invalid OpenID or password",
+          });
+        }
+        
+        if (!user.password || user.password !== input.password) {
+          throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "Invalid OpenID or password",
+          });
+        }
+        
+        // Set session cookie
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, user.openId, cookieOptions);
+        
+        return { success: true, user };
+      }),
     createUser: publicProcedure
       .input(z.object({
         openId: z.string().min(1),
         name: z.string().optional(),
         email: z.string().email().optional(),
         role: z.enum(["user", "admin"]).optional(),
+        password: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
         const user = await createUser({
           openId: input.openId,
           name: input.name,
           email: input.email,
+          password: input.password,
           role: input.role || "user",
           loginMethod: "manual",
         });
