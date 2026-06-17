@@ -9,7 +9,8 @@ import {
   getAllCurrencies, getCurrencyById, createCurrency, updateCurrency, deleteCurrency,
   getAllRates, getRateForPair, createRate, updateRate, deleteRate,
   getAllAddresses, getAddressesForCurrency, createAddress, updateAddress, deleteAddress,
-  getAllOrders, getOrderByPublicId, createOrder, updateOrderStatus
+  getAllOrders, getOrderByPublicId, createOrder, updateOrderStatus,
+  createUser
 } from "./db";
 import { notifyOwner } from "./_core/notification";
 
@@ -30,6 +31,23 @@ export const appRouter = router({
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
+    createUser: publicProcedure
+      .input(z.object({
+        openId: z.string().min(1),
+        name: z.string().optional(),
+        email: z.string().email().optional(),
+        role: z.enum(["user", "admin"]).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const user = await createUser({
+          openId: input.openId,
+          name: input.name,
+          email: input.email,
+          role: input.role || "user",
+          loginMethod: "manual",
+        });
+        return user;
+      }),
   }),
 
   // ============ PUBLIC: Currencies ============

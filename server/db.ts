@@ -116,6 +116,15 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
+export async function createUser(user: InsertUser) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  if (!user.openId) throw new Error("User openId is required");
+  
+  const result = await db.insert(users).values(user).returning();
+  return result[0];
+}
+
 // ============ CURRENCIES ============
 
 export async function getAllCurrencies(activeOnly = true) {
