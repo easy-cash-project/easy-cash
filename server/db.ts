@@ -125,6 +125,15 @@ export async function createUser(user: InsertUser) {
   return result[0];
 }
 
+export async function updateUser(openId: string, updates: Partial<InsertUser>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  if (!openId) throw new Error("User openId is required");
+  
+  const result = await db.update(users).set(updates).where(eq(users.openId, openId)).returning();
+  return result[0];
+}
+
 // ============ CURRENCIES ============
 
 export async function getAllCurrencies(activeOnly = true) {

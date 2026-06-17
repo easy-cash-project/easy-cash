@@ -10,7 +10,7 @@ import {
   getAllRates, getRateForPair, createRate, updateRate, deleteRate,
   getAllAddresses, getAddressesForCurrency, createAddress, updateAddress, deleteAddress,
   getAllOrders, getOrderByPublicId, createOrder, updateOrderStatus,
-  createUser, getUserByOpenId
+  createUser, getUserByOpenId, updateUser
 } from "./db";
 import { notifyOwner } from "./_core/notification";
 
@@ -76,6 +76,23 @@ export const appRouter = router({
           role: input.role || "user",
           loginMethod: "manual",
         });
+        return user;
+      }),
+    setPassword: publicProcedure
+      .input(z.object({
+        openId: z.string().min(1),
+        password: z.string().min(1),
+      }))
+      .mutation(async ({ input }) => {
+        const user = await updateUser(input.openId, {
+          password: input.password,
+        });
+        if (!user) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "User not found",
+          });
+        }
         return user;
       }),
   }),
