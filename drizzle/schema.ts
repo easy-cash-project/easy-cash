@@ -1,4 +1,4 @@
-import { int, pgEnum, pgTable, text, timestamp, varchar, numeric, bigint } from "drizzle-orm/pg-core";
+import { serial, pgEnum, pgTable, text, timestamp, varchar, numeric } from "drizzle-orm/pg-core";
 
 const roleEnum = pgEnum("role", ["user", "admin"]);
 const typeEnum = pgEnum("type", ["crypto", "fiat"]);
@@ -8,14 +8,14 @@ const statusEnum = pgEnum("status", ["pending", "payment_received", "processing"
  * Core user table backing auth flow.
  */
 export const users = pgTable("users", {
-  id: int("id").autoincrement().primaryKey(),
+  id: serial("id").primaryKey(),
   openId: varchar("openId", { length: 64 }).notNull().unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: roleEnum("role").default("user").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
 });
 
@@ -28,7 +28,7 @@ export type InsertUser = typeof users.$inferInsert;
  * network: optional network for crypto (e.g., BEP20, ERC20, TRC20, SOL, TON)
  */
 export const currencies = pgTable("currencies", {
-  id: int("id").autoincrement().primaryKey(),
+  id: serial("id").primaryKey(),
   code: varchar("code", { length: 32 }).notNull(),
   name: varchar("name", { length: 128 }).notNull(),
   type: typeEnum("type").notNull(),
@@ -36,10 +36,10 @@ export const currencies = pgTable("currencies", {
   symbol: varchar("symbol", { length: 16 }),
   icon: varchar("icon", { length: 512 }),
   category: varchar("category", { length: 32 }), // Crypto, Карты, Cash, ATM
-  isActive: int("isActive").default(1).notNull(),
-  sortOrder: int("sortOrder").default(0).notNull(),
+  isActive: numeric("isActive").default("1").notNull(),
+  sortOrder: numeric("sortOrder").default("0").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });
 
 export type Currency = typeof currencies.$inferSelect;
@@ -52,16 +52,16 @@ export type InsertCurrency = typeof currencies.$inferInsert;
  * effectiveRate = rate * (1 + markupPercent / 100)
  */
 export const exchangeRates = pgTable("exchange_rates", {
-  id: int("id").autoincrement().primaryKey(),
-  fromCurrencyId: int("fromCurrencyId").notNull(),
-  toCurrencyId: int("toCurrencyId").notNull(),
+  id: serial("id").primaryKey(),
+  fromCurrencyId: numeric("fromCurrencyId").notNull(),
+  toCurrencyId: numeric("toCurrencyId").notNull(),
   rate: numeric("rate", { precision: 20, scale: 8 }).notNull(),
   markupPercent: numeric("markupPercent", { precision: 5, scale: 2 }).default("0").notNull(),
   minAmount: numeric("minAmount", { precision: 20, scale: 8 }),
   maxAmount: numeric("maxAmount", { precision: 20, scale: 8 }),
-  isActive: int("isActive").default(1).notNull(),
+  isActive: numeric("isActive").default("1").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });
 
 export type ExchangeRate = typeof exchangeRates.$inferSelect;
@@ -71,13 +71,13 @@ export type InsertExchangeRate = typeof exchangeRates.$inferInsert;
  * Deposit addresses for receiving crypto from clients.
  */
 export const depositAddresses = pgTable("deposit_addresses", {
-  id: int("id").autoincrement().primaryKey(),
-  currencyId: int("currencyId").notNull(),
+  id: serial("id").primaryKey(),
+  currencyId: numeric("currencyId").notNull(),
   address: varchar("address", { length: 512 }).notNull(),
   label: varchar("label", { length: 128 }),
-  isActive: int("isActive").default(1).notNull(),
+  isActive: numeric("isActive").default("1").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });
 
 export type DepositAddress = typeof depositAddresses.$inferSelect;
@@ -87,11 +87,11 @@ export type InsertDepositAddress = typeof depositAddresses.$inferInsert;
  * Exchange orders created by clients.
  */
 export const orders = pgTable("orders", {
-  id: int("id").autoincrement().primaryKey(),
+  id: serial("id").primaryKey(),
   orderId: varchar("orderId", { length: 32 }).notNull().unique(), // public-facing order ID
-  giveCurrencyId: int("giveCurrencyId").notNull(),
+  giveCurrencyId: numeric("giveCurrencyId").notNull(),
   giveAmount: numeric("giveAmount", { precision: 20, scale: 8 }).notNull(),
-  receiveCurrencyId: int("receiveCurrencyId").notNull(),
+  receiveCurrencyId: numeric("receiveCurrencyId").notNull(),
   receiveAmount: numeric("receiveAmount", { precision: 20, scale: 8 }).notNull(),
   exchangeRate: numeric("exchangeRate", { precision: 20, scale: 8 }).notNull(),
   payoutDetails: text("payoutDetails").notNull(), // card number or crypto address for payout
@@ -100,7 +100,7 @@ export const orders = pgTable("orders", {
   status: statusEnum("status").default("pending").notNull(),
   adminNote: text("adminNote"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });
 
 export type Order = typeof orders.$inferSelect;
