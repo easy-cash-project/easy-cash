@@ -1,7 +1,9 @@
 import { eq, and, desc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
+import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
+import path from "path";
 import { InsertUser, users, currencies, exchangeRates, depositAddresses, orders } from "../drizzle/schema";
 import type { InsertCurrency, InsertExchangeRate, InsertDepositAddress, InsertOrder } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -21,10 +23,24 @@ export async function getDb() {
       _db = drizzle(_connection, {
         casing: 'snake_case',
       });
+      
+      // Run migrations
+      console.log("[Database] Running migrations...");
+      try {
+        const migrationsFolder = path.join(process.cwd(), 'drizzle');
+        await migrate(_db, { migrationsFolder });
+        console.log("[Database] Migrations completed successfully");
+      } catch (migrationError) {
+        console.error("[Database] Migration error:", migrationError);
+      }
+      
       console.log("[Database] Connected successfully");
     } catch (error) {
       console.error("[Database] Failed to connect:", error);
       _db = null;
+      if (_connection) {
+        await _connection.end();
+      }
       _connection = null;
       _initialized = false;
     }
