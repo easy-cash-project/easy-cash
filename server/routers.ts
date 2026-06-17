@@ -64,7 +64,7 @@ export const appRouter = router({
         const cookieOptions = getSessionCookieOptions(ctx.req);
         ctx.res.cookie(COOKIE_NAME, sessionToken, cookieOptions);
         
-        return { success: true, user };
+        return { success: true, user, token: sessionToken };
       }),
     createUser: publicProcedure
       .input(z.object({

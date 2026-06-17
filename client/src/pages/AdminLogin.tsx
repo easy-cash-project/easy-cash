@@ -20,6 +20,11 @@ export default function AdminLogin() {
       console.log("Login successful:", data);
       toast.success("Вход выполнен успешно!");
       
+      // Store JWT token in localStorage
+      if (data.token) {
+        localStorage.setItem("auth-token", data.token);
+      }
+      
       // Set user data in cache immediately
       utils.auth.me.setData(undefined, data.user);
       
