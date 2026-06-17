@@ -1,5 +1,6 @@
 import { eq, and, desc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { InsertUser, users, currencies, exchangeRates, depositAddresses, orders } from "../drizzle/schema";
 import type { InsertCurrency, InsertExchangeRate, InsertDepositAddress, InsertOrder } from "../drizzle/schema";
@@ -17,7 +18,9 @@ export async function getDb() {
       _connection = postgres(process.env.DATABASE_URL, {
         prepare: false,
       });
-      _db = drizzle(_connection);
+      _db = drizzle(_connection, {
+        casing: 'snake_case',
+      });
       console.log("[Database] Connected successfully");
     } catch (error) {
       console.error("[Database] Failed to connect:", error);
