@@ -4,24 +4,29 @@ import { trpc } from "@/lib/trpc";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, ArrowLeftRight } from "lucide-react";
+import { Loader2, ArrowLeftRight, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
 export default function AdminLogin() {
   const [, setLocation] = useLocation();
   const [openId, setOpenId] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const loginMutation = trpc.auth.login.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Login successful:", data);
       toast.success("Вход выполнен успешно!");
       setOpenId("");
       setPassword("");
       // Redirect to admin panel
-      setLocation("/moneymaker777/orders");
+      setTimeout(() => {
+        setLocation("/moneymaker777/orders");
+      }, 500);
     },
     onError: (err) => {
+      console.error("Login error:", err);
       toast.error(err.message || "Ошибка входа");
     },
   });
@@ -41,10 +46,13 @@ export default function AdminLogin() {
 
     setIsLoading(true);
     try {
+      console.log("Attempting login with:", { openId: openId.trim() });
       await loginMutation.mutateAsync({
         openId: openId.trim(),
         password: password.trim(),
       });
+    } catch (error) {
+      console.error("Login mutation error:", error);
     } finally {
       setIsLoading(false);
     }
@@ -89,23 +97,40 @@ export default function AdminLogin() {
                 onChange={(e) => setOpenId(e.target.value)}
                 disabled={isLoading || loginMutation.isPending}
                 className="h-10"
+                autoComplete="username"
               />
             </div>
 
-            {/* Password Input */}
+            {/* Password Input with Show/Hide Button */}
             <div className="space-y-2">
               <label htmlFor="password" className="text-sm font-medium">
                 Пароль
               </label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Введите пароль"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={isLoading || loginMutation.isPending}
-                className="h-10"
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Введите пароль"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoading || loginMutation.isPending}
+                  className="h-10 pr-10"
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  disabled={isLoading || loginMutation.isPending}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                  aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
             </div>
 
             {/* Submit Button */}
