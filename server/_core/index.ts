@@ -119,6 +119,7 @@ async function initializeSeedData() {
 
       // Create rate for crypto -> RUB
       try {
+        console.log(`[Init] About to query existing rate for ${fromCrypto} (${fromId}) -> RUB (${rubId})`);
         const existing = await db.select().from(exchangeRates)
           .where(and(eq(exchangeRates.fromCurrencyId, fromId), eq(exchangeRates.toCurrencyId, rubId)))
           .limit(1);
@@ -190,6 +191,7 @@ async function initializeSeedData() {
         }
       } catch (e) {
         console.error(`[Init] Error seeding rates for ${fromCrypto}:`, e);
+        console.error(`[Init] Error stack:`, e instanceof Error ? e.stack : 'No stack');
       }
     }
     console.log(`[Init] Exchange rates seeded: ${ratesCreated} rates created`);
