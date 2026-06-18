@@ -201,7 +201,7 @@ export async function createCurrency(data: InsertCurrency) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const result = await db.insert(currencies).values(data);
-  return result[0].insertId;
+  return result.insertId;
 }
 
 export async function updateCurrency(id: number, data: Partial<InsertCurrency>) {
@@ -243,7 +243,7 @@ export async function createRate(data: InsertExchangeRate) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const result = await db.insert(exchangeRates).values(data);
-  return result[0].insertId;
+  return result.insertId;
 }
 
 export async function updateRate(id: number, data: Partial<InsertExchangeRate>) {
@@ -280,7 +280,7 @@ export async function createAddress(data: InsertDepositAddress) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const result = await db.insert(depositAddresses).values(data);
-  return result[0].insertId;
+  return result.insertId;
 }
 
 export async function updateAddress(id: number, data: Partial<InsertDepositAddress>) {
@@ -314,7 +314,7 @@ export async function createOrder(data: InsertOrder) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const result = await db.insert(orders).values(data);
-  return result[0].insertId;
+  return result.insertId;
 }
 
 export async function updateOrderStatus(id: number, status: string, adminNote?: string) {
