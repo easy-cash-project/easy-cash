@@ -111,6 +111,7 @@ async function initializeSeedData() {
 
       const rubId = currencyMap['RUB'];
       const priceRub = mockRates[fromCrypto];
+      console.log(`[Init] Checking conditions: priceRub=${priceRub}, rubId=${rubId}, fromId=${fromId}`);
       if (!priceRub || !rubId) {
         console.log(`[Init] ⚠️ Missing priceRub=${priceRub} or rubId=${rubId}`);
         continue;
