@@ -19,13 +19,23 @@ export default function AdminLogin() {
     onSuccess: async (data) => {
       console.log("Login successful:", data);
       
+      // Store JWT token in localStorage BEFORE any other operations
+      if (data.token) {
+        localStorage.setItem("auth-token", data.token);
+        console.log("JWT token stored in localStorage");
+      }
+      
       toast.success("Вход выполнен успешно!");
       
       // Clear form
       setOpenId("");
       setPassword("");
       
-      // Wait a bit for cookie to be set
+      // Invalidate auth.me query to force refetch with new token
+      console.log("Invalidating auth.me query");
+      await utils.auth.me.invalidate();
+      
+      // Wait a bit for the query to complete
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Redirect to admin panel

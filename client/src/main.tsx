@@ -45,9 +45,21 @@ const trpcClient = trpc.createClient({
       url: "/api/trpc",
       transformer: superjson,
       fetch(input, init) {
+        const token = localStorage.getItem("auth-token");
+        const headers = new Headers(init?.headers || {});
+        
+        // Always send JWT token in Authorization header
+        if (token) {
+          headers.set("Authorization", `Bearer ${token}`);
+          console.log("[TRPC] Sending Authorization header with JWT token");
+        } else {
+          console.log("[TRPC] No JWT token found in localStorage");
+        }
+        
         return globalThis.fetch(input, {
           ...(init ?? {}),
-          credentials: "include",
+          headers,
+          credentials: "omit", // Don't send cookies, use JWT instead
         });
       },
     }),

@@ -6,7 +6,6 @@ import { sdk } from "./_core/sdk";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { nanoid } from "nanoid";
-import { COOKIE_NAME } from "@shared/const";
 import {
   getAllCurrencies, getCurrencyById, createCurrency, updateCurrency, deleteCurrency,
   getAllRates, getRateForPair, createRate, updateRate, deleteRate,
@@ -27,10 +26,9 @@ const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
 export const appRouter = router({
   system: systemRouter,
   auth: router({
-    me: publicProcedure.query(opts => opts.ctx.user),
-    logout: publicProcedure.mutation(({ ctx }) => {
-      const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+    me: protectedProcedure.query(({ ctx }) => ctx.user),
+    logout: protectedProcedure.mutation(() => {
+      // Token will be cleared on client side
       return { success: true } as const;
     }),
     login: publicProcedure
@@ -56,14 +54,13 @@ export const appRouter = router({
         }
         
         // Create JWT session token
-        const sessionToken = await sdk.createSessionToken(user.openId, {
+        const sessionToken = sdk.createSessionToken({
+          openId: user.openId,
+          appId: "easycash-app",
           name: user.name || user.openId,
         });
         
-        // Set session cookie with JWT token
-        const cookieOptions = getSessionCookieOptions(ctx.req);
-        ctx.res.cookie(COOKIE_NAME, sessionToken, cookieOptions);
-        
+        // Return token for client to store in localStorage
         return { success: true, user, token: sessionToken };
       }),
     createUser: publicProcedure
@@ -83,7 +80,7 @@ export const appRouter = router({
           role: input.role || "user",
           loginMethod: "manual",
         });
-        return user;
+        return { success: true, user };
       }),
     setPassword: publicProcedure
       .input(z.object({
@@ -100,7 +97,7 @@ export const appRouter = router({
             message: "User not found",
           });
         }
-        return user;
+        return { success: true, user };
       }),
   }),
 

@@ -13,6 +13,7 @@ export function useAuth(options?: UseAuthOptions) {
     options ?? {};
   const utils = trpc.useUtils();
 
+  // Query to get current user info - will use JWT from localStorage
   const meQuery = trpc.auth.me.useQuery(undefined, {
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
@@ -21,6 +22,8 @@ export function useAuth(options?: UseAuthOptions) {
 
   const logoutMutation = trpc.auth.logout.useMutation({
     onSuccess: () => {
+      // Clear token from localStorage
+      localStorage.removeItem("auth-token");
       utils.auth.me.setData(undefined, null);
     },
   });
@@ -37,6 +40,8 @@ export function useAuth(options?: UseAuthOptions) {
       }
       throw error;
     } finally {
+      // Always clear token on logout
+      localStorage.removeItem("auth-token");
       utils.auth.me.setData(undefined, null);
       await utils.auth.me.invalidate();
     }
