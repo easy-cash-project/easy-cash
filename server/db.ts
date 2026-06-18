@@ -205,7 +205,7 @@ export async function getAllRates(activeOnly = true) {
   const db = await getDb();
   if (!db) return [];
   if (activeOnly) {
-    return await db.select().from(exchangeRates).where(eq(exchangeRates.isActive, true));
+    return await db.select().from(exchangeRates).where(eq(exchangeRates.isActive, 1));
   }
   return await db.select().from(exchangeRates);
 }
@@ -217,7 +217,7 @@ export async function getRateForPair(fromCurrencyId: number, toCurrencyId: numbe
     .where(and(
       eq(exchangeRates.fromCurrencyId, fromCurrencyId),
       eq(exchangeRates.toCurrencyId, toCurrencyId),
-      eq(exchangeRates.isActive, true)
+      eq(exchangeRates.isActive, 1)
     ))
     .limit(1);
   return result[0];
