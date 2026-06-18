@@ -4,7 +4,7 @@
  * Creates a complete matrix of all possible exchanges
  */
 
-import fetch from 'node-fetch';
+// Use built-in fetch (Node.js 18+)
 
 export interface ExchangeRate {
   from: string;
