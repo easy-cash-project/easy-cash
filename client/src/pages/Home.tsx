@@ -124,10 +124,16 @@ export default function Home() {
 
   const { data: currencies } = trpc.currencies.list.useQuery();
   const { data: rates } = trpc.rates.listAll.useQuery();
+  const { data: addresses } = trpc.addresses.list.useQuery();
   
   // Declare these BEFORE using them in rateQuery
   const giveCurrency = currencies?.find(c => c.id === giveCurrencyId);
   const receiveCurrency = currencies?.find(c => c.id === receiveCurrencyId);
+  
+  // Get deposit address for the selected give currency
+  const depositAddress = giveCurrencyId && addresses
+    ? addresses.find(a => a.currencyId === giveCurrencyId)?.address
+    : null;
   
   const rateQuery = trpc.rates.getForPair.useQuery(
     {
@@ -393,13 +399,13 @@ export default function Home() {
               </div>
 
               {/* Кошельки для отправки */}
-              {giveCurrency && (
+              {giveCurrency && depositAddress && (
                 <div className="space-y-3 mb-6 p-4 rounded-xl bg-secondary/30 border border-border/50">
                   <label className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                     Отправьте {giveAmount || "0"} {giveCurrency.code} на адрес
                   </label>
                   <div className="bg-secondary/50 p-3 rounded-lg border border-border/50 break-all font-mono text-sm text-primary">
-                    TQCz8xaSUzUPVpJSUqPjJ3zDH5Rh2d4nM7
+                    {depositAddress}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     После отправки средств ваша заявка будет обработана в течение 10-30 минут
