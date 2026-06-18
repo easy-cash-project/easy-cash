@@ -22,6 +22,13 @@
       "when": 1781778600000,
       "tag": "0002_fix_field_types",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1781781900000,
+      "tag": "0003_add_status_to_users",
+      "breakpoints": true
     }
   ]
 }
