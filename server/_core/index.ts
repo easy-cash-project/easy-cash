@@ -259,7 +259,6 @@ async function initializeAdminUser() {
       email: 'admin@easycash.club',
       password: 'FGGHJKJoouy58&%^*98785',
       role: 'admin',
-      status: 'active',
       loginMethod: 'password',
     });
     console.log("[Init] Admin user created successfully!");
