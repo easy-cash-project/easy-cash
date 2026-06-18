@@ -27,11 +27,27 @@ export async function getDb() {
       // Run migrations
       console.log("[Database] Running migrations...");
       try {
-        const migrationsFolder = path.join(process.cwd(), 'drizzle');
+        // Try multiple possible paths for migrations
+        let migrationsFolder = path.join(process.cwd(), 'drizzle');
+        console.log("[Database] Trying migrations folder:", migrationsFolder);
+        
+        // If not found, try parent directory or alternative paths
+        const fs = await import('fs');
+        if (!fs.existsSync(migrationsFolder)) {
+          const altPath = path.join(process.cwd(), '..', 'drizzle');
+          console.log("[Database] Migrations folder not found at:", migrationsFolder);
+          console.log("[Database] Trying alternative path:", altPath);
+          if (fs.existsSync(altPath)) {
+            migrationsFolder = altPath;
+          }
+        }
+        
+        console.log("[Database] Using migrations folder:", migrationsFolder);
         await migrate(_db, { migrationsFolder });
         console.log("[Database] Migrations completed successfully");
       } catch (migrationError) {
         console.error("[Database] Migration error:", migrationError);
+        console.warn("[Database] Continuing despite migration error - database might already be up to date");
       }
       
       console.log("[Database] Connected successfully");
