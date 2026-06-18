@@ -72,7 +72,11 @@ export const appRouter = router({
         
         // Return token for client to store in localStorage
         console.log("[Login] Returning success response with token");
-        return { success: true, user, token: sessionToken };
+        console.log("[Login] Token value:", sessionToken ? `${sessionToken.substring(0, 50)}...` : "EMPTY");
+        console.log("[Login] Response object:", { success: true, userId: user?.id, tokenLength: sessionToken?.length });
+        const response = { success: true, user, token: sessionToken };
+        console.log("[Login] Final response keys:", Object.keys(response));
+        return response;
       }),
     createUser: publicProcedure
       .input(z.object({
