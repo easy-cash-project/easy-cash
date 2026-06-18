@@ -34,7 +34,7 @@ export function useAuth(options?: UseAuthOptions) {
   // Fallback: try auth.me query if no user data in localStorage
   const meQuery = trpc.auth.me.useQuery(undefined, {
     enabled: !userData && !isLoading, // Only if no user data from localStorage
-    retry: 1,
+    retry: false, // Don't retry on error to prevent infinite loops
     retryDelay: 1000,
   });
 
