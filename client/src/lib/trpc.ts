@@ -1,5 +1,5 @@
 import { createTRPCReact } from "@trpc/react-query";
-import type { AppRouter } from "../../../server/routers";
 
-// Create TRPC client with type-only import to avoid circular dependencies
-export const trpc = createTRPCReact<AppRouter>();
+// Use a generic type instead of importing AppRouter directly
+// This avoids circular dependency issues during build
+export const trpc = createTRPCReact<any>();
