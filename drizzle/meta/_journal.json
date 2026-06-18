@@ -15,6 +15,13 @@
       "when": 1781728808345,
       "tag": "0001_add_password_field",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1781778600000,
+      "tag": "0002_fix_field_types",
+      "breakpoints": true
     }
   ]
 }
