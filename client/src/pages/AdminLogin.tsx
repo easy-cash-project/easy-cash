@@ -54,9 +54,13 @@ export default function AdminLogin() {
         setOpenId("");
         setPassword("");
         
-        // Redirect to admin panel
-        console.log("[AdminLogin] Redirecting to admin panel");
-        setLocation("/moneymaker777/orders");
+        // Wait a bit to ensure token is saved and synced, then redirect
+        console.log("[AdminLogin] Waiting before redirect...");
+        setTimeout(() => {
+          console.log("[AdminLogin] Redirecting to admin panel");
+          console.log("[AdminLogin] Token in localStorage before redirect:", localStorage.getItem("auth-token") ? "EXISTS" : "MISSING");
+          setLocation("/moneymaker777/orders");
+        }, 500);
       } catch (error) {
         console.error("[AdminLogin] Error in onSuccess:", error);
         toast.error("Ошибка при сохранении данных");
