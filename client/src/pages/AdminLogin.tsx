@@ -17,6 +17,8 @@ export default function AdminLogin() {
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: (data) => {
       try {
+        // Log to localStorage for debugging
+        localStorage.setItem("debug-login-onsuccess", JSON.stringify({ timestamp: new Date().toISOString(), dataExists: !!data, dataKeys: data ? Object.keys(data) : [] }));
         console.log("[AdminLogin] onSuccess called");
         console.log("[AdminLogin] data:", data);
         console.log("[AdminLogin] data.token:", data?.token ? "EXISTS (" + data.token.length + " chars)" : "MISSING");
@@ -26,6 +28,7 @@ export default function AdminLogin() {
         if (data?.token) {
           console.log("[AdminLogin] Storing token in localStorage...");
           localStorage.setItem("auth-token", data.token);
+          localStorage.setItem("debug-token-stored", JSON.stringify({ timestamp: new Date().toISOString(), tokenLength: data.token.length }));
           const stored = localStorage.getItem("auth-token");
           console.log("[AdminLogin] Token stored verification:", stored ? "SUCCESS" : "FAILED");
           if (!stored) {
@@ -60,6 +63,7 @@ export default function AdminLogin() {
       }
     },
     onError: (err) => {
+      localStorage.setItem("debug-login-onerror", JSON.stringify({ timestamp: new Date().toISOString(), errorMessage: err?.message, errorCode: err?.code }));
       console.error("[AdminLogin] onError called");
       console.error("[AdminLogin] Error:", err);
       console.error("[AdminLogin] Error message:", err?.message);
