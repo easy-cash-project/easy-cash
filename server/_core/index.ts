@@ -98,11 +98,12 @@ async function initializeSeedData() {
 
     let ratesCreated = 0;
     console.log(`[Init] Starting rates seeding. Currency map has ${Object.keys(currencyMap).length} currencies`);
+    console.log(`[Init] Currency map keys:`, Object.keys(currencyMap));
     console.log(`[Init] RUB ID: ${currencyMap['RUB']}`);
     
     for (const fromCrypto of cryptoCurrencies) {
       const fromId = currencyMap[fromCrypto];
-      console.log(`[Init] Processing ${fromCrypto}: fromId=${fromId}`);
+      console.log(`[Init] Processing ${fromCrypto}: fromId=${fromId}, mockRate=${mockRates[fromCrypto]}`);
       if (!fromId) {
         console.log(`[Init] ⚠️ No ID found for ${fromCrypto}`);
         continue;
@@ -122,20 +123,22 @@ async function initializeSeedData() {
           .limit(1);
         
         if (existing.length === 0) {
-          console.log(`[Init] Inserting rate: ${fromCrypto} (${fromId}) -> RUB (${rubId})`);
+          console.log(`[Init] Inserting rate: ${fromCrypto} (${fromId}) -> RUB (${rubId}), baseRate=${priceRub}`);
           try {
-            await db.insert(exchangeRates).values({
+            const result = await db.insert(exchangeRates).values({
               fromCurrencyId: fromId,
               toCurrencyId: rubId,
               baseRate: priceRub,
               markupPercent: 0,
               isActive: 1,
             });
-            console.log(`[Init] ✅ Rate seeded: ${fromCrypto} -> RUB`);
+            console.log(`[Init] ✅ Rate seeded: ${fromCrypto} -> RUB, result:`, result);
             ratesCreated++;
           } catch (insertErr) {
             console.error(`[Init] ❌ Failed to insert rate ${fromCrypto} -> RUB:`, insertErr);
           }
+        } else {
+          console.log(`[Init] Rate already exists: ${fromCrypto} -> RUB`);
         }
 
         // Create rate for RUB -> crypto
