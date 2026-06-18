@@ -160,19 +160,19 @@ class SDKServer {
   }
 
   /**
-   * Create a session token for a Manus user openId
+   * Create a session token for a Manus user
    * @example
-   * const sessionToken = await sdk.createSessionToken(userInfo.openId);
+   * const sessionToken = await sdk.createSessionToken({ openId: 'user123', appId: 'app', name: 'John' });
    */
   async createSessionToken(
-    openId: string,
-    options: { expiresInMs?: number; name?: string } = {}
+    payload: { openId: string; appId?: string; name?: string },
+    options: { expiresInMs?: number } = {}
   ): Promise<string> {
     return this.signSession(
       {
-        openId,
-        appId: ENV.appId,
-        name: options.name || "",
+        openId: payload.openId,
+        appId: payload.appId || ENV.appId,
+        name: payload.name || "",
       },
       options
     );
