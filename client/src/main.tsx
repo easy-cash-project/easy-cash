@@ -18,8 +18,9 @@ const redirectToLoginIfUnauthorized = (error: unknown) => {
 
   if (!isUnauthorized) return;
 
-  // Clear stored token on unauthorized
-  localStorage.removeItem("auth-token");
+  // Only redirect to login, don't clear token immediately
+  // Token will be cleared when user manually logs out
+  console.log("[Auth] Unauthorized error, redirecting to login");
   window.location.href = getLoginUrl();
 };
 
