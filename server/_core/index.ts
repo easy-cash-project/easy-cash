@@ -97,13 +97,23 @@ async function initializeSeedData() {
     };
 
     let ratesCreated = 0;
+    console.log(`[Init] Starting rates seeding. Currency map has ${Object.keys(currencyMap).length} currencies`);
+    console.log(`[Init] RUB ID: ${currencyMap['RUB']}`);
+    
     for (const fromCrypto of cryptoCurrencies) {
       const fromId = currencyMap[fromCrypto];
-      if (!fromId) continue;
+      console.log(`[Init] Processing ${fromCrypto}: fromId=${fromId}`);
+      if (!fromId) {
+        console.log(`[Init] ⚠️ No ID found for ${fromCrypto}`);
+        continue;
+      }
 
       const rubId = currencyMap['RUB'];
       const priceRub = mockRates[fromCrypto];
-      if (!priceRub || !rubId) continue;
+      if (!priceRub || !rubId) {
+        console.log(`[Init] ⚠️ Missing priceRub=${priceRub} or rubId=${rubId}`);
+        continue;
+      }
 
       // Create rate for crypto -> RUB
       try {
@@ -112,6 +122,7 @@ async function initializeSeedData() {
           .limit(1);
         
         if (existing.length === 0) {
+          console.log(`[Init] Inserting rate: ${fromCrypto} (${fromId}) -> RUB (${rubId})`);
           await db.insert(exchangeRates).values({
             fromCurrencyId: fromId,
             toCurrencyId: rubId,
