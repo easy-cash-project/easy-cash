@@ -124,6 +124,11 @@ export default function Home() {
 
   const { data: currencies } = trpc.currencies.list.useQuery();
   const { data: rates } = trpc.rates.listAll.useQuery();
+  
+  // Declare these BEFORE using them in rateQuery
+  const giveCurrency = currencies?.find(c => c.id === giveCurrencyId);
+  const receiveCurrency = currencies?.find(c => c.id === receiveCurrencyId);
+  
   const rateQuery = trpc.rates.getRate.useQuery(
     {
       from: giveCurrency?.code || "",
@@ -220,9 +225,6 @@ export default function Home() {
       telegramHandle,
     });
   };
-
-  const giveCurrency = currencies?.find(c => c.id === giveCurrencyId);
-  const receiveCurrency = currencies?.find(c => c.id === receiveCurrencyId);
 
   const allCurrencies = useMemo(() => currencies || [], [currencies]);
 
