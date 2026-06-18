@@ -9,8 +9,8 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { getDb, createCurrency, createAddress } from "../db";
-import { users } from "../../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { users, currencies, depositAddresses } from "../../drizzle/schema";
+import { eq, and } from "drizzle-orm";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -39,7 +39,7 @@ async function initializeSeedData() {
       return;
     }
 
-    // Seed currencies
+    // Seed currencies using Drizzle ORM
     const currenciesToSeed = [
       { code: 'USDT_TRC20', name: 'USDT (Tron)', type: 'crypto' as const, network: 'TRC20', symbol: '₮', isActive: 1 },
       { code: 'USDT_BEP20', name: 'USDT (BSC)', type: 'crypto' as const, network: 'BEP20', symbol: '₮', isActive: 1 },
@@ -56,29 +56,25 @@ async function initializeSeedData() {
     let currencyMap: Record<string, number> = {};
     for (const curr of currenciesToSeed) {
       try {
-        const existing = await db.select().from(users).limit(1); // Quick check if DB is working
-        // Try to get existing currency
-        const result = await db.query(`SELECT id FROM currencies WHERE code = $1`, [curr.code]);
-        if (result && result.rows && result.rows.length > 0) {
-          currencyMap[curr.code] = result.rows[0].id;
+        // Check if currency already exists
+        const existing = await db.select().from(currencies).where(eq(currencies.code, curr.code)).limit(1);
+        if (existing.length > 0) {
+          currencyMap[curr.code] = existing[0].id;
           console.log(`[Init] Currency already exists: ${curr.code}`);
         } else {
           // Insert new currency
-          const insertResult = await db.query(
-            `INSERT INTO currencies (code, name, type, network, symbol, isActive) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-            [curr.code, curr.name, curr.type, curr.network, curr.symbol, curr.isActive]
-          );
-          if (insertResult && insertResult.rows && insertResult.rows.length > 0) {
-            currencyMap[curr.code] = insertResult.rows[0].id;
+          const result = await db.insert(currencies).values(curr).returning();
+          if (result && result.length > 0) {
+            currencyMap[curr.code] = result[0].id;
             console.log(`[Init] ✅ Currency seeded: ${curr.code}`);
           }
         }
       } catch (e) {
-        console.log(`[Init] Skipping currency seed (DB might not support raw queries): ${curr.code}`);
+        console.error(`[Init] Error seeding currency ${curr.code}:`, e);
       }
     }
 
-    // Seed deposit addresses
+    // Seed deposit addresses using Drizzle ORM
     const addressesToSeed = [
       { currencyCode: 'USDT_TRC20', address: 'TWc1QzHxa5JcdbBCNmem3Ab7T6GyRUwexK', label: 'USDT TRC20 Wallet' },
       { currencyCode: 'USDT_BEP20', address: '0x8D73D376410Eec9b5DAaA9612E69754432372191', label: 'USDT BEP20 Wallet' },
@@ -100,22 +96,24 @@ async function initializeSeedData() {
         }
 
         // Check if address already exists
-        const existing = await db.query(
-          `SELECT id FROM deposit_addresses WHERE "currencyId" = $1 AND address = $2`,
-          [currencyId, addr.address]
-        );
-        if (existing && existing.rows && existing.rows.length > 0) {
+        const existing = await db.select().from(depositAddresses)
+          .where(and(eq(depositAddresses.currencyId, currencyId), eq(depositAddresses.address, addr.address)))
+          .limit(1);
+        
+        if (existing.length > 0) {
           console.log(`[Init] Address already exists for ${addr.currencyCode}`);
         } else {
           // Insert new address
-          await db.query(
-            `INSERT INTO deposit_addresses ("currencyId", address, label, "isActive") VALUES ($1, $2, $3, $4)`,
-            [currencyId, addr.address, addr.label, 1]
-          );
+          await db.insert(depositAddresses).values({
+            currencyId,
+            address: addr.address,
+            label: addr.label,
+            isActive: 1,
+          });
           console.log(`[Init] ✅ Address seeded: ${addr.currencyCode}`);
         }
       } catch (e) {
-        console.log(`[Init] Skipping address seed: ${addr.currencyCode}`);
+        console.error(`[Init] Error seeding address for ${addr.currencyCode}:`, e);
       }
     }
 
