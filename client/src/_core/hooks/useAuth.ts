@@ -72,6 +72,16 @@ export function useAuth(options?: UseAuthOptions) {
   const state = useMemo(() => {
     // Use userData from localStorage if available, otherwise use meQuery data
     const currentUser = userData || meQuery.data;
+    const isAuth = Boolean(currentUser);
+    
+    console.log("[useAuth] State update:", {
+      userData: !!userData,
+      meQueryData: !!meQuery.data,
+      currentUser: !!currentUser,
+      isLoading,
+      meQueryIsLoading: meQuery.isLoading,
+      isAuthenticated: isAuth,
+    });
     
     localStorage.setItem(
       "manus-runtime-user-info",
@@ -81,7 +91,7 @@ export function useAuth(options?: UseAuthOptions) {
       user: currentUser ?? null,
       loading: isLoading || meQuery.isLoading || logoutMutation.isPending,
       error: meQuery.error ?? logoutMutation.error ?? null,
-      isAuthenticated: Boolean(currentUser),
+      isAuthenticated: isAuth,
     };
   }, [
     userData,
