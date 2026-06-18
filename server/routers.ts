@@ -112,6 +112,13 @@ export const appRouter = router({
     }),
   }),
 
+  // ============ PUBLIC: Addresses ============
+  addresses: router({
+    list: publicProcedure.query(async () => {
+      return getAllAddresses(true);
+    }),
+  }),
+
   // ============ PUBLIC: Rates ============
   rates: router({
     // Get exchange rate between two specific currencies by ID
