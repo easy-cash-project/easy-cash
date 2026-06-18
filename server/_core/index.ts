@@ -315,7 +315,12 @@ async function startServer() {
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
+    // Initialize seed data asynchronously after server starts
+    initializeSeedData().catch(err => console.error("[Init] Failed to seed data:", err));
   });
 }
+
+// Export for testing
+export { initializeSeedData };
 
 startServer().catch(console.error);
