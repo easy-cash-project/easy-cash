@@ -38,9 +38,12 @@ export const appRouter = router({
         password: z.string().min(1),
       }))
       .mutation(async ({ input, ctx }) => {
+        console.log("[Login] Login attempt for openId:", input.openId);
         const user = await getUserByOpenId(input.openId);
+        console.log("[Login] User found:", user ? `${user.openId}` : "null");
         
         if (!user) {
+          console.log("[Login] User not found, throwing error");
           throw new TRPCError({
             code: "UNAUTHORIZED",
             message: "Invalid OpenID or password",
@@ -48,12 +51,14 @@ export const appRouter = router({
         }
         
         if (!user.password || user.password !== input.password) {
+          console.log("[Login] Password mismatch");
           throw new TRPCError({
             code: "UNAUTHORIZED",
             message: "Invalid OpenID or password",
           });
         }
         
+        console.log("[Login] Password matched, creating JWT");
         // Create JWT session token
         const tokenPayload = {
           openId: user.openId,
@@ -61,10 +66,12 @@ export const appRouter = router({
           name: user.name || user.openId,
         };
         console.log("[Auth] Creating JWT with payload:", tokenPayload);
-        const sessionToken = sdk.createSessionToken(tokenPayload);
+        const sessionToken = await sdk.createSessionToken(tokenPayload);
         console.log("[Auth] JWT created successfully, token length:", sessionToken.length);
+        console.log("[Auth] JWT token (first 50 chars):", sessionToken.substring(0, 50));
         
         // Return token for client to store in localStorage
+        console.log("[Login] Returning success response with token");
         return { success: true, user, token: sessionToken };
       }),
     createUser: publicProcedure
