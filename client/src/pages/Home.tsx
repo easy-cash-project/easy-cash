@@ -106,11 +106,14 @@ function CurrencySelector({
 export default function Home() {
   const [, navigate] = useLocation();
   const { data: currencies, isLoading: currenciesLoading } = trpc.currencies.list.useQuery();
-  const { data: ratesMatrix } = trpc.rates.matrix.useQuery();
+  const { data: ratesMatrix, isLoading: ratesMatrixLoading } = trpc.rates.matrix.useQuery();
   const { data: addresses } = trpc.addresses.list.useQuery();
   
   // Extract rates array from matrix
   const rates = ratesMatrix?.rates || [];
+  
+  // Show loading while data is being fetched
+  const isLoadingData = currenciesLoading || ratesMatrixLoading;
 
   const [giveCurrencyId, setGiveCurrencyId] = useState<number | null>(null);
   const [receiveCurrencyId, setReceiveCurrencyId] = useState<number | null>(null);
@@ -256,7 +259,7 @@ export default function Home() {
   const rateAvailable = !!rateQuery.data;
   const rateLoading = rateQuery.isLoading && !!giveCurrencyId && !!receiveCurrencyId;
 
-  if (currenciesLoading) {
+  if (isLoadingData) {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
