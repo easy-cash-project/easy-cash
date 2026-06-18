@@ -245,13 +245,19 @@ export const appRouter = router({
   orders: router({
     create: publicProcedure
       .input(z.object({
-        giveCurrencyId: z.number(),
-        giveAmount: z.string(),
-        receiveCurrencyId: z.number(),
-        receiveAmount: z.string(),
-        exchangeRate: z.string(),
-        payoutDetails: z.string().min(1),
-        telegramHandle: z.string().min(1),
+        giveCurrencyId: z.number().positive(),
+        receiveCurrencyId: z.number().positive(),
+        giveAmount: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
+          message: "Сумма должна быть положительным числом",
+        }),
+        receiveAmount: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
+          message: "Сумма должна быть положительным числом",
+        }),
+        exchangeRate: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
+          message: "Курс обмена должен быть положительным числом",
+        }),
+        payoutDetails: z.string().min(5, "Слишком короткие реквизиты").max(200, "Слишком длинные реквизиты"),
+        telegramHandle: z.string().min(3, "Неверный формат Telegram").max(50, "Слишком длинный Telegram"),
       }))
       .mutation(async ({ input }) => {
         // Get a deposit address for the give currency
@@ -392,8 +398,12 @@ export const appRouter = router({
     update: adminProcedure
       .input(z.object({
         id: z.number(),
-        rate: z.string().optional(),
-        markupPercent: z.string().optional(),
+        rate: z.string().refine((val) => !val || (!isNaN(parseFloat(val)) && parseFloat(val) > 0), {
+          message: "Курс должен быть положительным числом",
+        }).optional(),
+        markupPercent: z.string().refine((val) => !val || (!isNaN(parseFloat(val)) && parseFloat(val) >= -50 && parseFloat(val) <= 100), {
+          message: "Наценка должна быть от -50% до 100%",
+        }).optional(),
         minAmount: z.string().nullable().optional(),
         maxAmount: z.string().nullable().optional(),
         isActive: z.number().optional(),
@@ -418,9 +428,9 @@ export const appRouter = router({
     }),
     create: adminProcedure
       .input(z.object({
-        currencyId: z.number(),
-        address: z.string(),
-        label: z.string().nullable().optional(),
+        currencyId: z.number().positive(),
+        address: z.string().min(10, "Слишком короткий адрес").max(200, "Слишком длинный адрес"),
+        label: z.string().max(50, "Слишком длинное название").nullable().optional(),
       }))
       .mutation(async ({ input }) => {
         const id = await createAddress({
@@ -432,9 +442,9 @@ export const appRouter = router({
       }),
     update: adminProcedure
       .input(z.object({
-        id: z.number(),
-        address: z.string().optional(),
-        label: z.string().nullable().optional(),
+        id: z.number().positive(),
+        address: z.string().min(10, "Слишком короткий адрес").max(200, "Слишком длинный адрес").optional(),
+        label: z.string().max(50, "Слишком длинное название").nullable().optional(),
         isActive: z.number().optional(),
       }))
       .mutation(async ({ input }) => {
@@ -473,10 +483,10 @@ export const appRouter = router({
     }),
     create: adminProcedure
       .input(z.object({
-        openId: z.string().min(1),
-        name: z.string().nullable().optional(),
-        email: z.string().email().nullable().optional(),
-        password: z.string().min(1),
+        openId: z.string().min(3, "OpenID должен содержать минимум 3 символа").max(50),
+        name: z.string().max(100).nullable().optional(),
+        email: z.string().email().max(100).nullable().optional(),
+        password: z.string().min(8, "Пароль должен содержать минимум 8 символов").max(100),
         role: z.enum(["user", "admin", "manager", "operator", "viewer"]),
         status: z.enum(["active", "inactive"]),
       }))
@@ -500,11 +510,11 @@ export const appRouter = router({
       }),
     update: adminProcedure
       .input(z.object({
-        id: z.number(),
-        openId: z.string().optional(),
-        name: z.string().nullable().optional(),
-        email: z.string().email().nullable().optional(),
-        password: z.string().optional(),
+        id: z.number().positive(),
+        openId: z.string().min(3).max(50).optional(),
+        name: z.string().max(100).nullable().optional(),
+        email: z.string().email().max(100).nullable().optional(),
+        password: z.string().min(8, "Пароль должен содержать минимум 8 символов").max(100).optional(),
         role: z.enum(["user", "admin", "manager", "operator", "viewer"]).optional(),
         status: z.enum(["active", "inactive"]).optional(),
       }))
