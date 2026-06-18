@@ -153,14 +153,28 @@ export async function buildRatesMatrix(): Promise<RatesMatrixResponse> {
     }
   });
 
-  // Other cryptos
+  // Other cryptos - use CoinGecko with Rapira fallback
   const cryptoSymbols = ['BTC', 'ETH', 'LTC', 'TON', 'XMR'];
   cryptoSymbols.forEach((symbol) => {
-    const price = coinGeckoPrices.get(symbol);
+    let price = coinGeckoPrices.get(symbol)?.usd;
+    
+    // Fallback to Rapira API for TON if CoinGecko fails
+    if (!price && symbol === 'TON') {
+      const tonRapira = rapiraRates.get('TON/USDT');
+      if (tonRapira) {
+        const tonPrice = tonRapira.askPrice || tonRapira.close || 0;
+        if (tonPrice > 0) {
+          price = tonPrice; // Already in USDT
+        }
+      }
+    }
+    
     if (price) {
-      basePricesUsd.set(symbol, price.usd);
+      basePricesUsd.set(symbol, price);
     }
   });
+  
+  console.log('[Init] Base prices USD:', Object.fromEntries(basePricesUsd));
 
   // Build matrix: each crypto to each other crypto and RUB
   const allCryptos = [...SUPPORTED_CRYPTOS, FIAT];
