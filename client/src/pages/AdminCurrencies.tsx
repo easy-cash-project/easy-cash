@@ -576,10 +576,12 @@ export default function AdminCurrencies() {
                           className={
                             parseFloat(rate.markupPercent) > 0
                               ? "text-green-600"
-                              : "text-red-600"
+                              : parseFloat(rate.markupPercent) < 0
+                              ? "text-red-600"
+                              : "text-muted-foreground"
                           }
                         >
-                          {parseFloat(rate.markupPercent) > 0 ? "+" : ""}
+                          {parseFloat(rate.markupPercent) >= 0 ? "+" : ""}
                           {parseFloat(rate.markupPercent).toFixed(2)}%
                         </span>
                       </td>
