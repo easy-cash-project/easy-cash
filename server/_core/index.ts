@@ -296,19 +296,13 @@ async function startServer() {
   
   // Helmet: Set security HTTP headers
   app.use(helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", "data:", "https:"],
-      },
-    },
+    contentSecurityPolicy: false, // Отключаем CSP пока не настроим все нужные внешние домены
     hsts: {
       maxAge: 31536000, // 1 year
       includeSubDomains: true,
       preload: true,
     },
+    crossOriginEmbedderPolicy: false,
   }));
   
   // Rate Limiting: Protect against brute force and DDoS attacks
