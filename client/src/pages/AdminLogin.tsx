@@ -27,16 +27,16 @@ export default function AdminLogin() {
       
       toast.success("Вход выполнен успешно!");
       
-      // Set user data in cache immediately
-      utils.auth.me.setData(undefined, data.user);
-      console.log("User data set in cache", data.user);
-      
       // Clear form
       setOpenId("");
       setPassword("");
       
-      // Small delay to ensure token is available in TRPC client
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Invalidate and refetch auth.me query to get fresh data with new token
+      console.log("Invalidating auth.me query");
+      await utils.auth.me.invalidate();
+      
+      // Wait a bit for the query to complete
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       // Redirect to admin panel
       console.log("Redirecting to admin panel");
