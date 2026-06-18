@@ -2,6 +2,8 @@ import "dotenv/config";
 import express from "express";
 import { createServer } from "http";
 import net from "net";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
@@ -284,16 +286,75 @@ async function startServer() {
 
   const app = express();
   const server = createServer(app);
+  
+  // ============================================================================
+  // SECURITY MIDDLEWARE
+  // ============================================================================
+  
   // Trust proxy headers for HTTPS detection
   app.set('trust proxy', true);
+  
+  // Helmet: Set security HTTP headers
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "https:"],
+      },
+    },
+    hsts: {
+      maxAge: 31536000, // 1 year
+      includeSubDomains: true,
+      preload: true,
+    },
+  }));
+  
+  // Rate Limiting: Protect against brute force and DDoS attacks
+  const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per windowMs
+    message: 'Too many requests from this IP, please try again later.',
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+    skip: (req) => {
+      // Skip rate limiting for health checks and static files
+      return req.path === '/health' || req.path.startsWith('/public');
+    },
+  });
+  
+  // Apply rate limiting to all routes
+  app.use(limiter);
+  
+  // More strict rate limiting for authentication endpoints
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // limit each IP to 5 requests per windowMs
+    message: 'Too many login attempts, please try again later.',
+    skipSuccessfulRequests: true, // Don't count successful requests
+  });
+  
+  // Request logging middleware
+  app.use((req, res, next) => {
+    const start = Date.now();
+    res.on('finish', () => {
+      const duration = Date.now() - start;
+      const logLevel = res.statusCode >= 400 ? 'warn' : 'info';
+      console.log(`[${logLevel.toUpperCase()}] ${req.method} ${req.path} - ${res.statusCode} (${duration}ms)`);
+    });
+    next();
+  });
+  
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   registerStorageProxy(app);
-  registerOAuthRoutes(app);
-  // tRPC API
+  registerOAuthRoutes(app, authLimiter);
+  // tRPC API with rate limiting
   app.use(
     "/trpc",
+    limiter,
     createExpressMiddleware({
       router: appRouter,
       createContext,
@@ -314,13 +375,15 @@ async function startServer() {
   }
 
   server.listen(port, () => {
-    console.log(`Server running on http://localhost:${port}/`);
+    console.log(`[Server] Running on http://localhost:${port}/`);
+    console.log(`[Security] Helmet protection enabled`);
+    console.log(`[Security] Rate limiting enabled (100 requests per 15 minutes)`);
     // Initialize seed data asynchronously after server starts
     initializeSeedData().catch(err => console.error("[Init] Failed to seed data:", err));
   });
 }
 
 // Export for testing
-export { initializeSeedData };
+export { initializeSeedData, authLimiter };
 
 startServer().catch(console.error);
