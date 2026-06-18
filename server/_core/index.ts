@@ -74,6 +74,14 @@ async function initializeSeedData() {
       }
     }
 
+    // Refresh currency map to ensure all IDs are available
+    console.log(`[Init] Refreshing currency map...`);
+    const allCurrencies = await db.select().from(currencies);
+    for (const curr of allCurrencies) {
+      currencyMap[curr.code] = curr.id;
+    }
+    console.log(`[Init] Currency map refreshed with ${Object.keys(currencyMap).length} currencies`);
+
     // Seed deposit addresses using Drizzle ORM
     const addressesToSeed = [
       { currencyCode: 'USDT_TRC20', address: 'TWc1QzHxa5JcdbBCNmem3Ab7T6GyRUwexK', label: 'USDT TRC20 Wallet' },
