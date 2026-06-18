@@ -39,7 +39,10 @@ function CurrencySelector({
   return (
     <div className="relative" ref={ref}>
       <button
-        onClick={() => setOpen(!open)}
+        onClick={() => {
+          console.log('Dropdown clicked, open:', open, 'currencies:', currencies.length);
+          setOpen(!open);
+        }}
         className="w-full flex items-center justify-between gap-2 p-3.5 rounded-xl bg-secondary/50 border border-border/50 hover:border-primary/30 transition-all duration-200 text-left"
       >
         <div className="flex items-center gap-2.5">
