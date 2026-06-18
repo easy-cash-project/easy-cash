@@ -13,7 +13,6 @@ export default function AdminLogin() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const utils = trpc.useUtils();
 
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: async (data) => {
@@ -31,14 +30,11 @@ export default function AdminLogin() {
       setOpenId("");
       setPassword("");
       
-      // Invalidate auth.me query to force refetch with new token
-      console.log("Invalidating auth.me query");
-      await utils.auth.me.invalidate();
+      // Wait for token to be stored
+      await new Promise(resolve => setTimeout(resolve, 100));
       
-      // Wait a bit for the query to complete
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Redirect to admin panel
+      // Redirect to admin panel immediately
+      // The token is now in localStorage and TRPC client will use it
       console.log("Redirecting to admin panel");
       setLocation("/moneymaker777/orders");
     },
