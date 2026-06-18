@@ -221,7 +221,7 @@ export default function Home() {
       giveAmount,
       receiveCurrencyId,
       receiveAmount,
-      exchangeRate: rateQuery.data.rate || rateQuery.data.ask_price,
+      exchangeRate: String(rateQuery.data.rate || rateQuery.data.ask_price || "0"),
       payoutDetails,
       telegramHandle,
     });
@@ -394,6 +394,21 @@ export default function Home() {
                 <Clock className="w-3 h-3" />
                 <span>Курс обновится через {countdown}с</span>
               </div>
+
+              {/* Кошельки для отправки */}
+              {giveCurrency && (
+                <div className="space-y-3 mb-6 p-4 rounded-xl bg-secondary/30 border border-border/50">
+                  <label className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                    Отправьте {giveAmount || "0"} {giveCurrency.code} на адрес
+                  </label>
+                  <div className="bg-secondary/50 p-3 rounded-lg border border-border/50 break-all font-mono text-sm text-primary">
+                    TQCz8xaSUzUPVpJSUqPjJ3zDH5Rh2d4nM7
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    После отправки средств ваша заявка будет обработана в течение 10-30 минут
+                  </p>
+                </div>
+              )}
 
               {/* Telegram для связи */}
               <div className="space-y-3 mb-6">
