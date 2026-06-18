@@ -11,7 +11,7 @@ import {
   getAllRates, getRateForPair, createRate, updateRate, deleteRate,
   getAllAddresses, getAddressesForCurrency, createAddress, updateAddress, deleteAddress,
   getAllOrders, getOrderByPublicId, createOrder, updateOrderStatus,
-  createUser, getUserByOpenId, updateUser
+  createUser, getUserByOpenId, updateUser, getAllUsers, deleteUserById
 } from "./db";
 import { notifyOwner } from "./_core/notification";
 import { buildRatesMatrix, getExchangeRate, getRatesFrom, getRatesTo, ratesMatrixCache, getSupportedCurrencies } from "./_core/rates-parser";
@@ -420,6 +420,79 @@ export const appRouter = router({
       }))
       .mutation(async ({ input }) => {
         await updateOrderStatus(input.id, input.status, input.adminNote);
+        return { success: true };
+      }),
+  }),
+  // ============ ADMIN: Users ============
+  adminUsers: router({
+    list: adminProcedure.query(async () => {
+      return getAllUsers();
+    }),
+    create: adminProcedure
+      .input(z.object({
+        openId: z.string().min(1),
+        name: z.string().nullable().optional(),
+        email: z.string().email().nullable().optional(),
+        password: z.string().min(1),
+        role: z.enum(["user", "admin", "manager", "operator", "viewer"]),
+        status: z.enum(["active", "inactive"]),
+      }))
+      .mutation(async ({ input }) => {
+        const existingUser = await getUserByOpenId(input.openId);
+        if (existingUser) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "User with this OpenID already exists",
+          });
+        }
+        const user = await createUser({
+          openId: input.openId,
+          name: input.name ?? null,
+          email: input.email ?? null,
+          password: input.password,
+          role: input.role,
+          status: input.status,
+        });
+        return user;
+      }),
+    update: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        openId: z.string().optional(),
+        name: z.string().nullable().optional(),
+        email: z.string().email().nullable().optional(),
+        password: z.string().optional(),
+        role: z.enum(["user", "admin", "manager", "operator", "viewer"]).optional(),
+        status: z.enum(["active", "inactive"]).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        if (!input.openId) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "OpenID is required",
+          });
+        }
+        const user = await getUserByOpenId(input.openId);
+        if (!user) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "User not found",
+          });
+        }
+        const updates: Record<string, any> = {};
+        if (input.name !== undefined) updates.name = input.name;
+        if (input.email !== undefined) updates.email = input.email;
+        if (input.password) updates.password = input.password;
+        if (input.role) updates.role = input.role;
+        if (input.status) updates.status = input.status;
+        
+        const result = await updateUser(user.openId, updates);
+        return result;
+      }),
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await deleteUserById(input.id);
         return { success: true };
       }),
   }),

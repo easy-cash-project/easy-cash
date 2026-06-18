@@ -39,8 +39,8 @@ export const currencies = pgTable("currencies", {
   symbol: varchar("symbol", { length: 16 }),
   icon: varchar("icon", { length: 512 }),
   category: varchar("category", { length: 32 }), // Crypto, Карты, Cash, ATM
-  isActive: numeric("isActive").default("1").notNull(),
-  sortOrder: numeric("sortOrder").default("0").notNull(),
+  isActive: numeric("isActive", { precision: 1 }).default("1").notNull(),
+  sortOrder: numeric("sortOrder", { precision: 5 }).default("0").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });
@@ -56,8 +56,8 @@ export type InsertCurrency = typeof currencies.$inferInsert;
  */
 export const exchangeRates = pgTable("exchange_rates", {
   id: serial("id").primaryKey(),
-  fromCurrencyId: numeric("fromCurrencyId").notNull(),
-  toCurrencyId: numeric("toCurrencyId").notNull(),
+  fromCurrencyId: numeric("fromCurrencyId", { precision: 10 }).notNull(),
+  toCurrencyId: numeric("toCurrencyId", { precision: 10 }).notNull(),
   rate: numeric("rate", { precision: 20, scale: 8 }).notNull(),
   markupPercent: numeric("markupPercent", { precision: 5, scale: 2 }).default("0").notNull(),
   minAmount: numeric("minAmount", { precision: 20, scale: 8 }),
@@ -75,7 +75,7 @@ export type InsertExchangeRate = typeof exchangeRates.$inferInsert;
  */
 export const depositAddresses = pgTable("deposit_addresses", {
   id: serial("id").primaryKey(),
-  currencyId: numeric("currencyId").notNull(),
+  currencyId: numeric("currencyId", { precision: 10 }).notNull(),
   address: varchar("address", { length: 512 }).notNull(),
   label: varchar("label", { length: 128 }),
   isActive: numeric("isActive").default("1").notNull(),
@@ -92,9 +92,9 @@ export type InsertDepositAddress = typeof depositAddresses.$inferInsert;
 export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
   orderId: varchar("orderId", { length: 32 }).notNull().unique(), // public-facing order ID
-  giveCurrencyId: numeric("giveCurrencyId").notNull(),
+  giveCurrencyId: numeric("giveCurrencyId", { precision: 10 }).notNull(),
   giveAmount: numeric("giveAmount", { precision: 20, scale: 8 }).notNull(),
-  receiveCurrencyId: numeric("receiveCurrencyId").notNull(),
+  receiveCurrencyId: numeric("receiveCurrencyId", { precision: 10 }).notNull(),
   receiveAmount: numeric("receiveAmount", { precision: 20, scale: 8 }).notNull(),
   exchangeRate: numeric("exchangeRate", { precision: 20, scale: 8 }).notNull(),
   payoutDetails: text("payoutDetails").notNull(), // card number or crypto address for payout
