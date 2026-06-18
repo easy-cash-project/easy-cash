@@ -5,7 +5,7 @@ import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { ArrowDownUp, Clock, Send, Loader2, AlertCircle, ChevronDown } from "lucide-react";
+import { ArrowDownUp, Clock, Send, Loader2, AlertCircle, ChevronDown, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 
 function CurrencySelector({
@@ -107,6 +107,7 @@ export default function Home() {
   const [, navigate] = useLocation();
   const { data: currencies, isLoading: currenciesLoading } = trpc.currencies.list.useQuery();
   const { data: rates } = trpc.rates.listAll.useQuery();
+  const { data: addresses } = trpc.addresses.list.useQuery();
 
   const [giveCurrencyId, setGiveCurrencyId] = useState<number | null>(null);
   const [receiveCurrencyId, setReceiveCurrencyId] = useState<number | null>(null);
@@ -116,6 +117,7 @@ export default function Home() {
   const [telegramHandle, setTelegramHandle] = useState("");
   const [countdown, setCountdown] = useState(60);
   const [lastEditedField, setLastEditedField] = useState<"give" | "receive">("give");
+  const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
 
   // Set defaults when currencies load
   useEffect(() => {
@@ -350,6 +352,41 @@ export default function Home() {
               <div className="flex items-center gap-2 mb-6 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
                 <AlertCircle className="w-4 h-4 text-destructive shrink-0" />
                 <span className="text-sm text-destructive">Курс для этой пары не установлен.</span>
+              </div>
+            )}
+
+            {/* Deposit Address Section */}
+            {giveCurrency?.type === "crypto" && (
+              <div className="mb-6 p-4 rounded-xl bg-blue/5 border border-blue/20">
+                <label className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 block">Адрес для депозита</label>
+                {addresses && addresses.length > 0 ? (
+                  <div className="space-y-2">
+                    {addresses
+                      .filter(addr => addr.currencyId === giveCurrencyId)
+                      .map((addr) => (
+                        <div key={addr.id} className="flex items-center gap-2 p-3 rounded-lg bg-secondary/50 border border-border/30">
+                          <code className="flex-1 text-xs font-mono text-foreground break-all">{addr.address}</code>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(addr.address);
+                              setCopiedAddress(addr.address);
+                              setTimeout(() => setCopiedAddress(null), 2000);
+                              toast.success("Адрес скопирован!");
+                            }}
+                            className="p-2 hover:bg-primary/10 rounded transition-colors"
+                          >
+                            {copiedAddress === addr.address ? (
+                              <Check className="w-4 h-4 text-green-500" />
+                            ) : (
+                              <Copy className="w-4 h-4 text-muted-foreground" />
+                            )}
+                          </button>
+                        </div>
+                      ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Адреса не добавлены</p>
+                )}
               </div>
             )}
 
