@@ -1,7 +1,7 @@
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { TRPCClientError } from "@trpc/client";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 type UseAuthOptions = {
   redirectOnUnauthenticated?: boolean;
@@ -12,9 +12,19 @@ export function useAuth(options?: UseAuthOptions) {
   const { redirectOnUnauthenticated = false, redirectPath = getLoginUrl() } =
     options ?? {};
   const utils = trpc.useUtils();
+  const [tokenLoaded, setTokenLoaded] = useState(false);
+
+  // Wait for token to be loaded from localStorage before executing auth.me query
+  useEffect(() => {
+    // Check if token exists in localStorage
+    const token = localStorage.getItem("auth-token");
+    console.log("[useAuth] Token loaded from localStorage:", !!token);
+    setTokenLoaded(true);
+  }, []);
 
   // Query to get current user info - will use JWT from localStorage
   const meQuery = trpc.auth.me.useQuery(undefined, {
+    enabled: tokenLoaded, // Only execute after token is loaded
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     refetchOnWindowFocus: true,
@@ -54,7 +64,7 @@ export function useAuth(options?: UseAuthOptions) {
     );
     return {
       user: meQuery.data ?? null,
-      loading: meQuery.isLoading || logoutMutation.isPending,
+      loading: meQuery.isLoading || logoutMutation.isPending || !tokenLoaded,
       error: meQuery.error ?? logoutMutation.error ?? null,
       isAuthenticated: Boolean(meQuery.data),
     };
@@ -64,6 +74,7 @@ export function useAuth(options?: UseAuthOptions) {
     meQuery.isLoading,
     logoutMutation.error,
     logoutMutation.isPending,
+    tokenLoaded,
   ]);
 
   useEffect(() => {
