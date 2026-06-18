@@ -12,7 +12,7 @@ import AdminLogin from "./pages/AdminLogin";
 import AdminOrders from "./pages/admin/AdminOrders";
 import AdminRates from "./pages/admin/AdminRates";
 import AdminAddresses from "./pages/admin/AdminAddresses";
-import AdminCurrencies from "./pages/admin/AdminCurrencies";
+import AdminCurrencies from "./pages/AdminCurrencies";
 
 function Router() {
   return (
