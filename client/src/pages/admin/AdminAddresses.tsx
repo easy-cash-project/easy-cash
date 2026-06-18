@@ -4,23 +4,30 @@ import AdminLayout from "@/components/AdminLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Plus, Trash2, RefreshCw, Pencil, X, Check } from "lucide-react";
+import { Loader2, RefreshCw, Pencil, X, Check, Plus } from "lucide-react";
 import { toast } from "sonner";
+
+// List of supported cryptocurrencies
+const SUPPORTED_CRYPTOS = [
+  { code: 'USDT_TRC20', name: 'USDT (Tron)' },
+  { code: 'USDT_BEP20', name: 'USDT (BSC)' },
+  { code: 'USDT_SOL', name: 'USDT (Solana)' },
+  { code: 'USDT_TON', name: 'USDT (Ton)' },
+  { code: 'BTC', name: 'Bitcoin' },
+  { code: 'ETH', name: 'Ethereum' },
+  { code: 'LTC', name: 'Litecoin' },
+  { code: 'TON', name: 'Ton' },
+  { code: 'XMR', name: 'Monero' },
+];
 
 export default function AdminAddresses() {
   const { data: addresses, isLoading, refetch } = trpc.adminAddresses.list.useQuery();
   const { data: currencies } = trpc.currencies.list.useQuery();
-  const [showAdd, setShowAdd] = useState(false);
-  const [currencyId, setCurrencyId] = useState("");
-  const [address, setAddress] = useState("");
-  const [label, setLabel] = useState("");
 
   const createMutation = trpc.adminAddresses.create.useMutation({
     onSuccess: () => {
       toast.success("Адрес добавлен");
       refetch();
-      resetForm();
     },
     onError: (err) => toast.error(err.message),
   });
@@ -41,27 +48,13 @@ export default function AdminAddresses() {
     onError: (err) => toast.error(err.message),
   });
 
-  const resetForm = () => {
-    setShowAdd(false);
-    setCurrencyId("");
-    setAddress("");
-    setLabel("");
+  const getCurrencyByCode = (code: string) => {
+    return currencies?.find(c => c.code === code);
   };
 
-  const handleCreate = () => {
-    if (!currencyId || !address) {
-      toast.error("Заполните обязательные поля");
-      return;
-    }
-    createMutation.mutate({
-      currencyId: parseInt(currencyId),
-      address,
-      label: label || null,
-    });
+  const getAddressesForCurrency = (currencyId: number) => {
+    return addresses?.filter(a => a.currencyId === currencyId) || [];
   };
-
-  const getCurrencyName = (id: number) => currencies?.find(c => c.id === id)?.name || `ID:${id}`;
-  const cryptoCurrencies = currencies?.filter(c => c.type === "crypto") || [];
 
   return (
     <AdminLayout>
@@ -71,63 +64,43 @@ export default function AdminAddresses() {
             <h1 className="text-2xl font-bold">Адреса для депозитов</h1>
             <p className="text-sm text-muted-foreground">Крипто-адреса, которые показываются клиентам для перевода</p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => refetch()}>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Обновить
-            </Button>
-            <Button size="sm" onClick={() => setShowAdd(!showAdd)} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-              <Plus className="w-4 h-4 mr-2" />
-              Добавить
-            </Button>
-          </div>
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Обновить
+          </Button>
         </div>
 
-        {/* Add Form */}
-        {showAdd && (
-          <Card className="p-4 bg-card border-border/50 space-y-4">
-            <h3 className="font-semibold">Новый адрес</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <Select value={currencyId} onValueChange={setCurrencyId}>
-                <SelectTrigger><SelectValue placeholder="Валюта" /></SelectTrigger>
-                <SelectContent>
-                  {cryptoCurrencies.map(c => (
-                    <SelectItem key={c.id} value={String(c.id)}>{c.name}{c.network ? ` (${c.network})` : ""}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Input placeholder="Адрес кошелька" value={address} onChange={e => setAddress(e.target.value)} className="bg-secondary/50" />
-              <Input placeholder="Метка (необяз.)" value={label} onChange={e => setLabel(e.target.value)} className="bg-secondary/50" />
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={handleCreate} disabled={createMutation.isPending} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Создать"}
-              </Button>
-              <Button variant="outline" onClick={resetForm}>Отмена</Button>
-            </div>
-          </Card>
-        )}
-
-        {/* Addresses List */}
         {isLoading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="w-6 h-6 animate-spin text-primary" />
           </div>
-        ) : !addresses?.length ? (
+        ) : !currencies?.length ? (
           <Card className="p-8 text-center bg-card border-border/50">
-            <p className="text-muted-foreground">Адреса не настроены. Добавьте адреса для приёма криптовалюты.</p>
+            <p className="text-muted-foreground">Валюты не настроены</p>
           </Card>
         ) : (
-          <div className="space-y-2">
-            {addresses.map((addr) => (
-              <AddressRow
-                key={addr.id}
-                addr={addr}
-                getCurrencyName={getCurrencyName}
-                onDelete={() => deleteMutation.mutate({ id: addr.id })}
-                onUpdate={(data) => updateMutation.mutate({ id: addr.id, ...data })}
-              />
-            ))}
+          <div className="space-y-3">
+            {SUPPORTED_CRYPTOS.map((crypto) => {
+              const currency = getCurrencyByCode(crypto.code);
+              if (!currency) return null;
+
+              const cryptoAddresses = getAddressesForCurrency(currency.id);
+
+              return (
+                <CryptoAddressCard
+                  key={crypto.code}
+                  crypto={crypto}
+                  currency={currency}
+                  addresses={cryptoAddresses}
+                  onDelete={(id) => deleteMutation.mutate({ id })}
+                  onUpdate={(id, data) => updateMutation.mutate({ id, ...data })}
+                  onCreate={(data) => createMutation.mutate(data)}
+                  isDeleting={deleteMutation.isPending}
+                  isUpdating={updateMutation.isPending}
+                  isCreating={createMutation.isPending}
+                />
+              );
+            })}
           </div>
         )}
       </div>
@@ -135,63 +108,249 @@ export default function AdminAddresses() {
   );
 }
 
-function AddressRow({ addr, getCurrencyName, onDelete, onUpdate }: {
+function CryptoAddressCard({
+  crypto,
+  currency,
+  addresses,
+  onDelete,
+  onUpdate,
+  onCreate,
+  isDeleting,
+  isUpdating,
+  isCreating,
+}: {
+  crypto: any;
+  currency: any;
+  addresses: any[];
+  onDelete: (id: number) => void;
+  onUpdate: (id: number, data: any) => void;
+  onCreate: (data: any) => void;
+  isDeleting: boolean;
+  isUpdating: boolean;
+  isCreating: boolean;
+}) {
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newAddress, setNewAddress] = useState("");
+  const [newLabel, setNewLabel] = useState("");
+
+  const handleAddAddress = () => {
+    if (!newAddress.trim()) {
+      toast.error("Введите адрес");
+      return;
+    }
+
+    onCreate({
+      currencyId: currency.id,
+      address: newAddress,
+      label: newLabel || null,
+    });
+
+    setNewAddress("");
+    setNewLabel("");
+    setShowAddForm(false);
+  };
+
+  return (
+    <Card className="p-4 bg-card border-border/50">
+      <div className="space-y-3">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold text-base">{crypto.name}</h3>
+            <p className="text-xs text-muted-foreground">{crypto.code}</p>
+          </div>
+          {!showAddForm && (
+            <Button
+              size="sm"
+              onClick={() => setShowAddForm(true)}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Добавить адрес
+            </Button>
+          )}
+        </div>
+
+        {/* Add Address Form */}
+        {showAddForm && (
+          <div className="bg-secondary/30 p-3 rounded-lg space-y-2">
+            <div className="space-y-2">
+              <Input
+                placeholder="Адрес кошелька"
+                value={newAddress}
+                onChange={(e) => setNewAddress(e.target.value)}
+                className="bg-background text-sm"
+              />
+              <Input
+                placeholder="Метка (необязательно)"
+                value={newLabel}
+                onChange={(e) => setNewLabel(e.target.value)}
+                className="bg-background text-sm"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                onClick={handleAddAddress}
+                disabled={isCreating}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              >
+                {isCreating ? <Loader2 className="w-4 h-4 animate-spin" /> : "Добавить"}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setShowAddForm(false);
+                  setNewAddress("");
+                  setNewLabel("");
+                }}
+              >
+                Отмена
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Addresses List */}
+        {addresses.length === 0 ? (
+          <div className="bg-secondary/30 p-3 rounded-lg text-center">
+            <p className="text-xs text-muted-foreground">Адреса не добавлены</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {addresses.map((addr) => (
+              <AddressRow
+                key={addr.id}
+                addr={addr}
+                onDelete={() => onDelete(addr.id)}
+                onUpdate={(data) => onUpdate(addr.id, data)}
+                isDeleting={isDeleting}
+                isUpdating={isUpdating}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+function AddressRow({
+  addr,
+  onDelete,
+  onUpdate,
+  isDeleting,
+  isUpdating,
+}: {
   addr: any;
-  getCurrencyName: (id: number) => string;
   onDelete: () => void;
-  onUpdate: (data: { address?: string; label?: string | null }) => void;
+  onUpdate: (data: any) => void;
+  isDeleting: boolean;
+  isUpdating: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [editAddress, setEditAddress] = useState(addr.address);
   const [editLabel, setEditLabel] = useState(addr.label || "");
 
   const handleSave = () => {
+    if (!editAddress.trim()) {
+      toast.error("Адрес не может быть пустым");
+      return;
+    }
     onUpdate({ address: editAddress, label: editLabel || null });
     setEditing(false);
   };
 
   return (
-    <Card className="p-4 bg-card border-border/50">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <div className="bg-secondary/30 p-3 rounded-lg">
+      <div className="flex items-center justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <span className="font-medium text-sm">{getCurrencyName(addr.currencyId)}</span>
-            {addr.label && !editing && <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded">{addr.label}</span>}
-            <span className={`text-xs px-2 py-0.5 rounded ${addr.isActive ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"}`}>
-              {addr.isActive ? "Активен" : "Неактивен"}
-            </span>
-          </div>
           {!editing ? (
-            <p className="font-mono text-sm text-muted-foreground truncate">{addr.address}</p>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="font-mono text-sm text-foreground truncate">{addr.address}</p>
+                {addr.label && (
+                  <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded">
+                    {addr.label}
+                  </span>
+                )}
+                <span
+                  className={`text-xs px-2 py-0.5 rounded ${
+                    addr.isActive
+                      ? "bg-green-500/10 text-green-600"
+                      : "bg-red-500/10 text-red-600"
+                  }`}
+                >
+                  {addr.isActive ? "Активен" : "Неактивен"}
+                </span>
+              </div>
+            </div>
           ) : (
-            <div className="space-y-2 mt-2">
-              <Input value={editAddress} onChange={e => setEditAddress(e.target.value)} placeholder="Адрес" className="bg-secondary/50 text-sm font-mono" />
-              <Input value={editLabel} onChange={e => setEditLabel(e.target.value)} placeholder="Метка (необяз.)" className="bg-secondary/50 text-sm" />
+            <div className="space-y-2">
+              <Input
+                value={editAddress}
+                onChange={(e) => setEditAddress(e.target.value)}
+                placeholder="Адрес"
+                className="bg-background text-sm font-mono"
+              />
+              <Input
+                value={editLabel}
+                onChange={(e) => setEditLabel(e.target.value)}
+                placeholder="Метка (необязательно)"
+                className="bg-background text-sm"
+              />
             </div>
           )}
         </div>
         <div className="flex gap-1 shrink-0">
           {editing ? (
             <>
-              <Button variant="ghost" size="sm" onClick={handleSave} className="text-primary hover:text-primary">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleSave}
+                disabled={isUpdating}
+                className="text-green-600 hover:text-green-700"
+              >
                 <Check className="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => setEditing(false)} className="text-muted-foreground">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setEditing(false);
+                  setEditAddress(addr.address);
+                  setEditLabel(addr.label || "");
+                }}
+                className="text-muted-foreground hover:text-foreground"
+              >
                 <X className="w-4 h-4" />
               </Button>
             </>
           ) : (
             <>
-              <Button variant="ghost" size="sm" onClick={() => setEditing(true)} className="text-muted-foreground hover:text-foreground">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setEditing(true)}
+                className="text-muted-foreground hover:text-foreground"
+              >
                 <Pencil className="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="sm" onClick={onDelete} className="text-destructive hover:text-destructive">
-                <Trash2 className="w-4 h-4" />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onDelete}
+                disabled={isDeleting}
+                className="text-destructive hover:text-destructive"
+              >
+                <X className="w-4 h-4" />
               </Button>
             </>
           )}
         </div>
       </div>
-    </Card>
+    </div>
   );
 }

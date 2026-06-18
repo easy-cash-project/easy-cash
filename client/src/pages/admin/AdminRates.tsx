@@ -4,72 +4,76 @@ import AdminLayout from "@/components/AdminLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Plus, Trash2, RefreshCw } from "lucide-react";
+import { Loader2, RefreshCw, Edit2, Save, X } from "lucide-react";
 import { toast } from "sonner";
+
+// List of supported cryptocurrencies
+const SUPPORTED_CRYPTOS = [
+  { code: 'USDT_TRC20', name: 'USDT (Tron)' },
+  { code: 'USDT_BEP20', name: 'USDT (BSC)' },
+  { code: 'USDT_SOL', name: 'USDT (Solana)' },
+  { code: 'USDT_TON', name: 'USDT (Ton)' },
+  { code: 'BTC', name: 'Bitcoin' },
+  { code: 'ETH', name: 'Ethereum' },
+  { code: 'LTC', name: 'Litecoin' },
+  { code: 'TON', name: 'Ton' },
+  { code: 'XMR', name: 'Monero' },
+];
 
 export default function AdminRates() {
   const { data: rates, isLoading, refetch } = trpc.adminRates.list.useQuery();
   const { data: currencies } = trpc.currencies.list.useQuery();
-  const [showAdd, setShowAdd] = useState(false);
-  const [fromId, setFromId] = useState("");
-  const [toId, setToId] = useState("");
-  const [rate, setRate] = useState("");
-  const [markup, setMarkup] = useState("0");
-  const [minAmount, setMinAmount] = useState("");
-  const [maxAmount, setMaxAmount] = useState("");
-
-  const createMutation = trpc.adminRates.create.useMutation({
-    onSuccess: () => {
-      toast.success("Курс добавлен");
-      refetch();
-      resetForm();
-    },
-    onError: (err) => toast.error(err.message),
-  });
-
-  const deleteMutation = trpc.adminRates.delete.useMutation({
-    onSuccess: () => {
-      toast.success("Курс удалён");
-      refetch();
-    },
-    onError: (err) => toast.error(err.message),
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editValues, setEditValues] = useState<{ rate: string; markupPercent: string; markupPercentBuy: string }>({
+    rate: "",
+    markupPercent: "",
+    markupPercentBuy: "",
   });
 
   const updateMutation = trpc.adminRates.update.useMutation({
     onSuccess: () => {
       toast.success("Курс обновлён");
       refetch();
+      setEditingId(null);
     },
     onError: (err) => toast.error(err.message),
   });
 
-  const resetForm = () => {
-    setShowAdd(false);
-    setFromId("");
-    setToId("");
-    setRate("");
-    setMarkup("0");
-    setMinAmount("");
-    setMaxAmount("");
+  const getCurrencyByCode = (code: string) => {
+    return currencies?.find(c => c.code === code);
   };
 
-  const handleCreate = () => {
-    if (!fromId || !toId || !rate) {
-      toast.error("Заполните обязательные поля");
-      return;
-    }
-    createMutation.mutate({
-      fromCurrencyId: parseInt(fromId),
-      toCurrencyId: parseInt(toId),
-      rate,
-      markupPercent: markup || "0",
-      minAmount: minAmount || null,
-      maxAmount: maxAmount || null,
+  const getRateForPair = (fromCode: string, toCode: string) => {
+    const fromCurrency = getCurrencyByCode(fromCode);
+    const toCurrency = getCurrencyByCode(toCode);
+    
+    if (!fromCurrency || !toCurrency) return null;
+    
+    return rates?.find(r => 
+      r.fromCurrencyId === fromCurrency.id && r.toCurrencyId === toCurrency.id
+    );
+  };
+
+  const handleEdit = (rate: any) => {
+    setEditingId(rate.id);
+    setEditValues({
+      rate: rate.rate,
+      markupPercent: rate.markupPercent,
+      markupPercentBuy: rate.markupPercentBuy || "-" + rate.markupPercent,
     });
   };
 
-  const getCurrencyName = (id: number) => currencies?.find(c => c.id === id)?.name || `ID:${id}`;
+  const handleSave = () => {
+    if (editingId === null) return;
+    
+    updateMutation.mutate({
+      id: editingId,
+      rate: editValues.rate,
+      markupPercent: editValues.markupPercent,
+    });
+  };
+
+  const rubCurrency = currencies?.find(c => c.code === 'RUB');
 
   return (
     <AdminLayout>
@@ -79,133 +83,140 @@ export default function AdminRates() {
             <h1 className="text-2xl font-bold">Курсы обмена</h1>
             <p className="text-sm text-muted-foreground">Управление курсами валютных пар</p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => refetch()}>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Обновить
-            </Button>
-            <Button size="sm" onClick={() => setShowAdd(!showAdd)} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-              <Plus className="w-4 h-4 mr-2" />
-              Добавить
-            </Button>
-          </div>
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Обновить
+          </Button>
         </div>
 
-        {/* Add Form */}
-        {showAdd && (
-          <Card className="p-4 bg-card border-border/50 space-y-4">
-            <h3 className="font-semibold">Новый курс</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <Select value={fromId} onValueChange={setFromId}>
-                <SelectTrigger><SelectValue placeholder="Из валюты" /></SelectTrigger>
-                <SelectContent>
-                  {currencies?.map(c => (
-                    <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={toId} onValueChange={setToId}>
-                <SelectTrigger><SelectValue placeholder="В валюту" /></SelectTrigger>
-                <SelectContent>
-                  {currencies?.map(c => (
-                    <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Input placeholder="Курс (напр. 25000.00)" value={rate} onChange={e => setRate(e.target.value)} className="bg-secondary/50" />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <Input placeholder="Наценка % (напр. 2.5)" value={markup} onChange={e => setMarkup(e.target.value)} className="bg-secondary/50" />
-              <Input placeholder="Мин. сумма (необяз.)" value={minAmount} onChange={e => setMinAmount(e.target.value)} className="bg-secondary/50" />
-              <Input placeholder="Макс. сумма (необяз.)" value={maxAmount} onChange={e => setMaxAmount(e.target.value)} className="bg-secondary/50" />
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={handleCreate} disabled={createMutation.isPending} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Создать"}
-              </Button>
-              <Button variant="outline" onClick={resetForm}>Отмена</Button>
-            </div>
-          </Card>
-        )}
-
-        {/* Rates List */}
         {isLoading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="w-6 h-6 animate-spin text-primary" />
           </div>
-        ) : !rates?.length ? (
+        ) : !currencies?.length ? (
           <Card className="p-8 text-center bg-card border-border/50">
-            <p className="text-muted-foreground">Курсы не настроены</p>
+            <p className="text-muted-foreground">Валюты не настроены</p>
           </Card>
         ) : (
-          <div className="space-y-2">
-            {rates.map((r) => (
-              <RateRow
-                key={r.id}
-                rate={r}
-                getCurrencyName={getCurrencyName}
-                onDelete={() => deleteMutation.mutate({ id: r.id })}
-                onUpdate={(data) => updateMutation.mutate({ id: r.id, ...data })}
-              />
-            ))}
+          <div className="space-y-3">
+            {SUPPORTED_CRYPTOS.map((crypto) => {
+              const currency = getCurrencyByCode(crypto.code);
+              if (!currency) return null;
+
+              // Get rates: Crypto to RUB and RUB to Crypto
+              const cryptoToRub = getRateForPair(crypto.code, 'RUB');
+              const rubToCrypto = getRateForPair('RUB', crypto.code);
+
+              const isEditing = editingId === cryptoToRub?.id;
+
+              return (
+                <Card key={crypto.code} className="p-4 bg-card border-border/50">
+                  <div className="space-y-3">
+                    {/* Header */}
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-semibold text-base">{crypto.name}</h3>
+                        <p className="text-xs text-muted-foreground">{crypto.code}</p>
+                      </div>
+                    </div>
+
+                    {/* Crypto to RUB (SELL) */}
+                    <div className="bg-secondary/30 p-3 rounded-lg">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex-1">
+                          <p className="text-xs text-muted-foreground mb-1">Продажа (1 {crypto.code} = ? RUB)</p>
+                          {!isEditing && cryptoToRub ? (
+                            <div className="flex items-center gap-4 text-sm">
+                              <span>Курс: <span className="font-mono font-semibold text-foreground">{parseFloat(cryptoToRub.rate).toFixed(2)}</span> ₽</span>
+                              <span>Наценка: <span className="font-mono font-semibold text-green-600">+{parseFloat(cryptoToRub.markupPercent).toFixed(2)}%</span></span>
+                              <span>Продаю за: <span className="font-mono font-semibold text-primary">{(parseFloat(cryptoToRub.rate) * (1 + parseFloat(cryptoToRub.markupPercent) / 100)).toFixed(2)}</span> ₽</span>
+                            </div>
+                          ) : isEditing && cryptoToRub ? (
+                            <div className="flex items-center gap-2">
+                              <Input 
+                                type="number" 
+                                step="0.01" 
+                                value={editValues.rate} 
+                                onChange={(e) => setEditValues({ ...editValues, rate: e.target.value })}
+                                placeholder="Курс"
+                                className="w-24 h-8 bg-background text-sm"
+                              />
+                              <span className="text-sm">₽</span>
+                              <span className="text-sm text-muted-foreground">Наценка:</span>
+                              <Input 
+                                type="number" 
+                                step="0.01" 
+                                value={editValues.markupPercent} 
+                                onChange={(e) => setEditValues({ ...editValues, markupPercent: e.target.value })}
+                                placeholder="%"
+                                className="w-20 h-8 bg-background text-sm"
+                              />
+                              <span className="text-sm">%</span>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">Нет данных</p>
+                          )}
+                        </div>
+                        <div className="flex gap-1">
+                          {cryptoToRub && !isEditing && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => handleEdit(cryptoToRub)}
+                              className="text-muted-foreground hover:text-foreground"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                          {isEditing && (
+                            <>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={handleSave}
+                                disabled={updateMutation.isPending}
+                                className="text-green-600 hover:text-green-700"
+                              >
+                                <Save className="w-4 h-4" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => setEditingId(null)}
+                                className="text-muted-foreground hover:text-foreground"
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* RUB to Crypto (BUY) */}
+                    <div className="bg-secondary/30 p-3 rounded-lg">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex-1">
+                          <p className="text-xs text-muted-foreground mb-1">Покупка (1 RUB = ? {crypto.code})</p>
+                          {rubToCrypto ? (
+                            <div className="flex items-center gap-4 text-sm">
+                              <span>Курс: <span className="font-mono font-semibold text-foreground">{parseFloat(rubToCrypto.rate).toFixed(8)}</span></span>
+                              <span>Скидка: <span className="font-mono font-semibold text-red-600">{parseFloat(rubToCrypto.markupPercent).toFixed(2)}%</span></span>
+                              <span>Покупаю за: <span className="font-mono font-semibold text-primary">{(parseFloat(rubToCrypto.rate) * (1 + parseFloat(rubToCrypto.markupPercent) / 100)).toFixed(8)}</span></span>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">Нет данных</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>
     </AdminLayout>
-  );
-}
-
-function RateRow({ rate, getCurrencyName, onDelete, onUpdate }: {
-  rate: any;
-  getCurrencyName: (id: number) => string;
-  onDelete: () => void;
-  onUpdate: (data: { rate?: string; markupPercent?: string }) => void;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [editRate, setEditRate] = useState(rate.rate);
-  const [editMarkup, setEditMarkup] = useState(rate.markupPercent);
-
-  const effectiveRate = parseFloat(rate.rate) * (1 + parseFloat(rate.markupPercent) / 100);
-
-  return (
-    <Card className="p-4 bg-card border-border/50">
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="font-medium">{getCurrencyName(rate.fromCurrencyId)}</span>
-            <span className="text-muted-foreground">→</span>
-            <span className="font-medium">{getCurrencyName(rate.toCurrencyId)}</span>
-          </div>
-          {!editing ? (
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              <span>Курс: <span className="font-mono text-foreground">{rate.rate}</span></span>
-              <span>Наценка: <span className="font-mono text-foreground">{rate.markupPercent}%</span></span>
-              <span>Итого: <span className="font-mono text-primary">{effectiveRate.toFixed(4)}</span></span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 mt-2">
-              <Input value={editRate} onChange={e => setEditRate(e.target.value)} placeholder="Курс" className="w-32 h-8 bg-secondary/50 text-sm" />
-              <Input value={editMarkup} onChange={e => setEditMarkup(e.target.value)} placeholder="%" className="w-20 h-8 bg-secondary/50 text-sm" />
-              <Button size="sm" onClick={() => { onUpdate({ rate: editRate, markupPercent: editMarkup }); setEditing(false); }} className="h-8 bg-primary text-primary-foreground">
-                Сохранить
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => setEditing(false)} className="h-8">
-                Отмена
-              </Button>
-            </div>
-          )}
-        </div>
-        <div className="flex gap-1">
-          {!editing && (
-            <Button variant="ghost" size="sm" onClick={() => setEditing(true)} className="text-muted-foreground hover:text-foreground">
-              Изменить
-            </Button>
-          )}
-          <Button variant="ghost" size="sm" onClick={onDelete} className="text-destructive hover:text-destructive">
-            <Trash2 className="w-4 h-4" />
-          </Button>
-        </div>
-      </div>
-    </Card>
   );
 }
