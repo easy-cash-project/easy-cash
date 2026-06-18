@@ -200,6 +200,7 @@ class SDKServer {
   async verifySession(
     cookieValue: string | undefined | null
   ): Promise<{ openId: string; appId: string; name: string } | null> {
+    console.log("[Auth] verifySession called with token:", cookieValue ? `${cookieValue.substring(0, 20)}...` : "null");
     if (!cookieValue) {
       console.warn("[Auth] Missing session cookie");
       return null;
@@ -211,12 +212,14 @@ class SDKServer {
         algorithms: ["HS256"],
       });
       const { openId, appId, name } = payload as Record<string, unknown>;
+      console.log("[Auth] JWT payload:", { openId, appId, name });
 
       if (
         !isNonEmptyString(openId) ||
         !isNonEmptyString(appId) ||
         !isNonEmptyString(name)
       ) {
+        console.warn("[Auth] Invalid payload fields - openId:", typeof openId, "appId:", typeof appId, "name:", typeof name);
         console.warn("[Auth] Session payload missing required fields");
         return null;
       }
