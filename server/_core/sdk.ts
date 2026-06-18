@@ -261,12 +261,20 @@ class SDKServer {
     const authHeader = req.headers.authorization;
     let sessionCookie: string | undefined;
     
+    console.log("[Auth] Authenticating request");
+    console.log("[Auth] Authorization header:", authHeader ? "present" : "missing");
+    console.log("[Auth] Cookie header:", req.headers.cookie ? "present" : "missing");
+    
     if (authHeader?.startsWith("Bearer ")) {
       sessionCookie = authHeader.substring(7);
+      console.log("[Auth] Using Authorization header token");
     } else {
       // Fall back to cookie-based authentication
       const cookies = this.parseCookies(req.headers.cookie);
       sessionCookie = cookies.get(COOKIE_NAME);
+      console.log("[Auth] Cookies found:", Array.from(cookies.keys()));
+      console.log("[Auth] Looking for cookie:", COOKIE_NAME);
+      console.log("[Auth] Session cookie found:", sessionCookie ? "yes" : "no");
     }
     
     const session = await this.verifySession(sessionCookie);
