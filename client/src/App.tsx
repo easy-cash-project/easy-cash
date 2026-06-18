@@ -28,8 +28,8 @@ function Router() {
       <Route path={"/moneymaker777/orders"} component={AdminOrders} />
       <Route path={"/moneymaker777/rates"} component={AdminRates} />
       <Route path={"/moneymaker777/addresses"} component={AdminAddresses} />
-      <Route path={"/ moneymaker777/currencies"} component={AdminCurrencies} />
-      <Route path={"/ moneymaker777/users"} component={AdminUsers} />
+      <Route path={"/moneymaker777/currencies"} component={AdminCurrencies} />
+      <Route path={"/moneymaker777/users"} component={AdminUsers} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>
