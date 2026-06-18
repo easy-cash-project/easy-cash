@@ -249,22 +249,12 @@ export async function getRatesTo(to: string): Promise<ExchangeRate[]> {
 }
 
 /**
- * Cache rates matrix in memory with TTL
+ * No caching - always fetch fresh rates from API
  */
 class RatesMatrixCache {
-  private cache: Map<string, { data: RatesMatrixResponse; timestamp: number }> = new Map();
-  private ttl: number = 60000; // 1 minute
-
   async get(): Promise<RatesMatrixResponse> {
-    const cached = this.cache.get('matrix');
-
-    if (cached && Date.now() - cached.timestamp < this.ttl) {
-      return cached.data;
-    }
-
-    const data = await buildRatesMatrix();
-    this.cache.set('matrix', { data, timestamp: Date.now() });
-    return data;
+    // Always fetch fresh data from API
+    return await buildRatesMatrix();
   }
 
   async getRate(from: string, to: string): Promise<ExchangeRate | null> {
@@ -283,7 +273,7 @@ class RatesMatrixCache {
   }
 
   clear(): void {
-    this.cache.clear();
+    // No cache to clear
   }
 }
 
