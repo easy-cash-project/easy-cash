@@ -14,7 +14,7 @@ import {
   createUser, getUserByOpenId, updateUser
 } from "./db";
 import { notifyOwner } from "./_core/notification";
-import { parseRates, getRate, ratesCache } from "./_core/rates-parser";
+import { buildRatesMatrix, getExchangeRate, getRatesFrom, getRatesTo, ratesMatrixCache, getSupportedCurrencies } from "./_core/rates-parser";
 
 // Admin-only procedure
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -131,39 +131,71 @@ export const appRouter = router({
     listAll: publicProcedure.query(async () => {
       return getAllRates(true);
     }),
-    // Crypto rates from Rapira + CoinGecko
-    cryptoRates: publicProcedure.query(async () => {
+    // Get complete rates matrix (all possible exchanges)
+    matrix: publicProcedure.query(async () => {
       try {
-        return await ratesCache.get();
+        return await ratesMatrixCache.get();
       } catch (error) {
-        console.error("Error fetching crypto rates:", error);
+        console.error("Error fetching rates matrix:", error);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to fetch crypto rates",
+          message: "Failed to fetch rates matrix",
         });
       }
     }),
-    // Get single crypto rate
-    getCryptoRate: publicProcedure
-      .input(z.object({ symbol: z.string() }))
+    // Get exchange rate between two specific currencies
+    getRate: publicProcedure
+      .input(z.object({ from: z.string(), to: z.string() }))
       .query(async ({ input }) => {
         try {
-          const rate = await getRate(input.symbol);
+          const rate = await ratesMatrixCache.getRate(input.from, input.to);
           if (!rate) {
             throw new TRPCError({
               code: "NOT_FOUND",
-              message: `Rate not found for ${input.symbol}`,
+              message: `No rate found for ${input.from} to ${input.to}`,
             });
           }
           return rate;
         } catch (error) {
-          console.error(`Error fetching rate for ${input.symbol}:`, error);
+          console.error(`Error fetching rate for ${input.from}/${input.to}:`, error);
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to fetch crypto rate",
+            message: "Failed to fetch exchange rate",
           });
         }
       }),
+    // Get all rates FROM one currency
+    getRatesFrom: publicProcedure
+      .input(z.object({ from: z.string() }))
+      .query(async ({ input }) => {
+        try {
+          return await ratesMatrixCache.getRatesFrom(input.from);
+        } catch (error) {
+          console.error(`Error fetching rates from ${input.from}:`, error);
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to fetch rates",
+          });
+        }
+      }),
+    // Get all rates TO one currency
+    getRatesTo: publicProcedure
+      .input(z.object({ to: z.string() }))
+      .query(async ({ input }) => {
+        try {
+          return await ratesMatrixCache.getRatesTo(input.to);
+        } catch (error) {
+          console.error(`Error fetching rates to ${input.to}:`, error);
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to fetch rates",
+          });
+        }
+      }),
+    // Get list of all supported currencies
+    supported: publicProcedure.query(async () => {
+      return getSupportedCurrencies();
+    }),
   }),
 
   // ============ PUBLIC: Orders ============

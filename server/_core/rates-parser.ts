@@ -1,27 +1,41 @@
 /**
- * Crypto Rates Parser
- * Fetches exchange rates for RUB to various cryptocurrencies
- * Combines data from Rapira API and CoinGecko
+ * Crypto Rates Matrix Parser
+ * Fetches exchange rates for all crypto pairs and RUB
+ * Creates a complete matrix of all possible exchanges
  */
 
 import fetch from 'node-fetch';
 
-interface CryptoRate {
-  symbol: string;
-  name: string;
-  rub_price: number;
-  usd_price: number;
-  change_24h: number;
-  ask_price: number;
-  bid_price: number;
+export interface ExchangeRate {
+  from: string;
+  to: string;
+  rate: number;
+  ask_price: number; // Sell price (slightly higher)
+  bid_price: number; // Buy price (slightly lower)
   timestamp: number;
 }
 
-interface RatesResponse {
-  rates: CryptoRate[];
+export interface RatesMatrixResponse {
+  rates: ExchangeRate[];
   timestamp: number;
   source: string;
+  total_pairs: number;
 }
+
+// List of all supported cryptocurrencies
+const SUPPORTED_CRYPTOS = [
+  'USDT_TRC20',
+  'USDT_BEP20',
+  'USDT_SOL',
+  'USDT_TON',
+  'BTC',
+  'ETH',
+  'LTC',
+  'TON',
+  'XMR',
+];
+
+const FIAT = 'RUB';
 
 /**
  * Fetch rates from Rapira API
@@ -57,7 +71,7 @@ async function fetchRapiraRates(): Promise<Map<string, any>> {
 /**
  * Fetch crypto prices from CoinGecko API
  */
-async function fetchCoinGeckoPrices(): Promise<Map<string, number>> {
+async function fetchCoinGeckoPrices(): Promise<Map<string, { usd: number; change_24h: number }>> {
   try {
     const cryptoIds = [
       'bitcoin',
@@ -66,7 +80,6 @@ async function fetchCoinGeckoPrices(): Promise<Map<string, number>> {
       'tether',
       'ton',
       'monero',
-      'binancecoin',
     ];
 
     const response = await fetch(
@@ -93,7 +106,6 @@ async function fetchCoinGeckoPrices(): Promise<Map<string, number>> {
       tether: 'USDT',
       ton: 'TON',
       monero: 'XMR',
-      binancecoin: 'BNB',
     };
 
     Object.entries(data).forEach(([id, prices]: [string, any]) => {
@@ -114,13 +126,13 @@ async function fetchCoinGeckoPrices(): Promise<Map<string, number>> {
 }
 
 /**
- * Parse all rates and return combined data
+ * Build complete rates matrix
  */
-export async function parseRates(): Promise<RatesResponse> {
+export async function buildRatesMatrix(): Promise<RatesMatrixResponse> {
   const rapiraRates = await fetchRapiraRates();
   const coinGeckoPrices = await fetchCoinGeckoPrices();
 
-  const rates: CryptoRate[] = [];
+  const rates: ExchangeRate[] = [];
 
   // Get USDT/RUB rate from Rapira
   const usdtRubRate = rapiraRates.get('USDT/RUB');
@@ -130,93 +142,144 @@ export async function parseRates(): Promise<RatesResponse> {
 
   const usdtToRub = usdtRubRate.close || usdtRubRate.askPrice || 1;
 
-  // Define cryptocurrencies to track
-  const cryptos = [
-    { symbol: 'BTC', name: 'Bitcoin' },
-    { symbol: 'ETH', name: 'Ethereum' },
-    { symbol: 'LTC', name: 'Litecoin' },
-    { symbol: 'USDT', name: 'Tether' },
-    { symbol: 'TON', name: 'Ton' },
-    { symbol: 'XMR', name: 'Monero' },
-  ];
+  // Get base prices in USD
+  const basePricesUsd: Map<string, number> = new Map();
 
-  cryptos.forEach((crypto) => {
-    const price = coinGeckoPrices.get(crypto.symbol);
-    
-    if (price) {
-      const rubPrice = price.usd * usdtToRub;
-      
-      rates.push({
-        symbol: crypto.symbol,
-        name: crypto.name,
-        rub_price: Math.round(rubPrice * 100) / 100,
-        usd_price: Math.round(price.usd * 100) / 100,
-        change_24h: price.change_24h || 0,
-        ask_price: Math.round(rubPrice * 1.002 * 100) / 100, // +0.2% markup
-        bid_price: Math.round(rubPrice * 0.998 * 100) / 100, // -0.2% markup
-        timestamp: Date.now(),
-      });
+  // All USDT variants have the same price
+  const usdtPrice = coinGeckoPrices.get('USDT')?.usd || 1;
+  SUPPORTED_CRYPTOS.forEach((crypto) => {
+    if (crypto.startsWith('USDT')) {
+      basePricesUsd.set(crypto, usdtPrice);
     }
   });
 
-  // Add USDT variants for different chains
-  const usdtPrice = coinGeckoPrices.get('USDT');
-  if (usdtPrice) {
-    const rubPrice = usdtPrice.usd * usdtToRub;
-    
-    const usdtVariants = [
-      { symbol: 'USDT_TRC20', name: 'USDT (Tron)' },
-      { symbol: 'USDT_BEP20', name: 'USDT (BSC)' },
-      { symbol: 'USDT_SOL', name: 'USDT (Solana)' },
-      { symbol: 'USDT_TON', name: 'USDT (Ton)' },
-    ];
+  // Other cryptos
+  const cryptoSymbols = ['BTC', 'ETH', 'LTC', 'TON', 'XMR'];
+  cryptoSymbols.forEach((symbol) => {
+    const price = coinGeckoPrices.get(symbol);
+    if (price) {
+      basePricesUsd.set(symbol, price.usd);
+    }
+  });
 
-    usdtVariants.forEach((variant) => {
-      rates.push({
-        symbol: variant.symbol,
-        name: variant.name,
-        rub_price: Math.round(rubPrice * 100) / 100,
-        usd_price: Math.round(usdtPrice.usd * 100) / 100,
-        change_24h: usdtPrice.change_24h || 0,
-        ask_price: Math.round(rubPrice * 1.002 * 100) / 100,
-        bid_price: Math.round(rubPrice * 0.998 * 100) / 100,
-        timestamp: Date.now(),
-      });
-    });
+  // Build matrix: each crypto to each other crypto and RUB
+  const allCryptos = [...SUPPORTED_CRYPTOS, FIAT];
+
+  for (const fromCrypto of allCryptos) {
+    for (const toCrypto of allCryptos) {
+      if (fromCrypto === toCrypto) continue; // Skip same currency
+
+      let rate = 0;
+      let askPrice = 0;
+      let bidPrice = 0;
+
+      if (fromCrypto === FIAT) {
+        // RUB to Crypto: 1 RUB = ? Crypto
+        const toPrice = basePricesUsd.get(toCrypto);
+        if (toPrice) {
+          rate = 1 / (toPrice * usdtToRub);
+          const markup = 1.002; // 0.2% markup
+          askPrice = rate * markup;
+          bidPrice = rate / markup;
+        }
+      } else if (toCrypto === FIAT) {
+        // Crypto to RUB: 1 Crypto = ? RUB
+        const fromPrice = basePricesUsd.get(fromCrypto);
+        if (fromPrice) {
+          rate = fromPrice * usdtToRub;
+          const markup = 1.002;
+          askPrice = rate * markup;
+          bidPrice = rate / markup;
+        }
+      } else {
+        // Crypto to Crypto: 1 FromCrypto = ? ToCrypto
+        const fromPrice = basePricesUsd.get(fromCrypto);
+        const toPrice = basePricesUsd.get(toCrypto);
+        if (fromPrice && toPrice) {
+          rate = fromPrice / toPrice;
+          const markup = 1.002;
+          askPrice = rate * markup;
+          bidPrice = rate / markup;
+        }
+      }
+
+      if (rate > 0) {
+        rates.push({
+          from: fromCrypto,
+          to: toCrypto,
+          rate: Math.round(rate * 100000000) / 100000000, // 8 decimals
+          ask_price: Math.round(askPrice * 100000000) / 100000000,
+          bid_price: Math.round(bidPrice * 100000000) / 100000000,
+          timestamp: Date.now(),
+        });
+      }
+    }
   }
 
   return {
     rates,
     timestamp: Date.now(),
     source: 'Rapira + CoinGecko',
+    total_pairs: rates.length,
   };
 }
 
 /**
- * Get single rate for a specific crypto
+ * Get rate for specific pair
  */
-export async function getRate(symbol: string): Promise<CryptoRate | null> {
-  const response = await parseRates();
-  return response.rates.find((r) => r.symbol === symbol) || null;
+export async function getExchangeRate(from: string, to: string): Promise<ExchangeRate | null> {
+  const matrix = await buildRatesMatrix();
+  return matrix.rates.find((r) => r.from === from && r.to === to) || null;
 }
 
 /**
- * Cache rates in memory with TTL
+ * Get all rates from one currency
  */
-class RatesCache {
-  private cache: Map<string, { data: RatesResponse; timestamp: number }> = new Map();
+export async function getRatesFrom(from: string): Promise<ExchangeRate[]> {
+  const matrix = await buildRatesMatrix();
+  return matrix.rates.filter((r) => r.from === from);
+}
+
+/**
+ * Get all rates to one currency
+ */
+export async function getRatesTo(to: string): Promise<ExchangeRate[]> {
+  const matrix = await buildRatesMatrix();
+  return matrix.rates.filter((r) => r.to === to);
+}
+
+/**
+ * Cache rates matrix in memory with TTL
+ */
+class RatesMatrixCache {
+  private cache: Map<string, { data: RatesMatrixResponse; timestamp: number }> = new Map();
   private ttl: number = 60000; // 1 minute
 
-  async get(): Promise<RatesResponse> {
-    const cached = this.cache.get('rates');
-    
+  async get(): Promise<RatesMatrixResponse> {
+    const cached = this.cache.get('matrix');
+
     if (cached && Date.now() - cached.timestamp < this.ttl) {
       return cached.data;
     }
 
-    const data = await parseRates();
-    this.cache.set('rates', { data, timestamp: Date.now() });
+    const data = await buildRatesMatrix();
+    this.cache.set('matrix', { data, timestamp: Date.now() });
     return data;
+  }
+
+  async getRate(from: string, to: string): Promise<ExchangeRate | null> {
+    const matrix = await this.get();
+    return matrix.rates.find((r) => r.from === from && r.to === to) || null;
+  }
+
+  async getRatesFrom(from: string): Promise<ExchangeRate[]> {
+    const matrix = await this.get();
+    return matrix.rates.filter((r) => r.from === from);
+  }
+
+  async getRatesTo(to: string): Promise<ExchangeRate[]> {
+    const matrix = await this.get();
+    return matrix.rates.filter((r) => r.to === to);
   }
 
   clear(): void {
@@ -224,4 +287,9 @@ class RatesCache {
   }
 }
 
-export const ratesCache = new RatesCache();
+export const ratesMatrixCache = new RatesMatrixCache();
+
+// Export supported currencies list
+export function getSupportedCurrencies(): string[] {
+  return [...SUPPORTED_CRYPTOS, FIAT];
+}
