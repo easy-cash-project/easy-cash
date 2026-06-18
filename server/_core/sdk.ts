@@ -168,14 +168,22 @@ class SDKServer {
     payload: { openId: string; appId?: string; name?: string },
     options: { expiresInMs?: number } = {}
   ): Promise<string> {
-    return this.signSession(
-      {
-        openId: payload.openId,
-        appId: payload.appId || ENV.appId,
-        name: payload.name || "",
-      },
-      options
-    );
+    try {
+      console.log("[SDK] createSessionToken called with payload:", payload);
+      const token = await this.signSession(
+        {
+          openId: payload.openId,
+          appId: payload.appId || ENV.appId,
+          name: payload.name || "",
+        },
+        options
+      );
+      console.log("[SDK] JWT token created successfully, length:", token.length);
+      return token;
+    } catch (error) {
+      console.error("[SDK] Error creating session token:", error);
+      throw error;
+    }
   }
 
   async signSession(
