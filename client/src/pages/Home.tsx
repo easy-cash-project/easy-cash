@@ -106,6 +106,7 @@ function CurrencySelector({
 export default function Home() {
   const [, navigate] = useLocation();
   const { data: currencies, isLoading: currenciesLoading } = trpc.currencies.list.useQuery();
+  const { data: rates } = trpc.rates.listAll.useQuery();
 
   const [giveCurrencyId, setGiveCurrencyId] = useState<number | null>(null);
   const [receiveCurrencyId, setReceiveCurrencyId] = useState<number | null>(null);
@@ -212,6 +213,28 @@ export default function Home() {
 
   const allCurrencies = useMemo(() => currencies || [], [currencies]);
 
+  // Get available currencies for "give" (from) field
+  const availableGiveCurrencies = useMemo(() => {
+    if (!currencies || !rates) return [];
+    const currencyIds = new Set<number>();
+    rates.forEach(rate => {
+      currencyIds.add(rate.fromCurrencyId);
+    });
+    return currencies.filter(c => currencyIds.has(c.id));
+  }, [currencies, rates]);
+
+  // Get available currencies for "receive" (to) field based on selected "give" currency
+  const availableReceiveCurrencies = useMemo(() => {
+    if (!currencies || !rates || !giveCurrencyId) return [];
+    const currencyIds = new Set<number>();
+    rates.forEach(rate => {
+      if (rate.fromCurrencyId === giveCurrencyId) {
+        currencyIds.add(rate.toCurrencyId);
+      }
+    });
+    return currencies.filter(c => currencyIds.has(c.id));
+  }, [currencies, rates, giveCurrencyId]);
+
   const rateAvailable = !!rateQuery.data;
   const rateLoading = rateQuery.isLoading && !!giveCurrencyId && !!receiveCurrencyId;
 
@@ -248,7 +271,7 @@ export default function Home() {
             <div className="space-y-3 mb-6">
               <label className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Отдаёте</label>
               <CurrencySelector
-                currencies={allCurrencies}
+                currencies={availableGiveCurrencies}
                 selectedId={giveCurrencyId}
                 onSelect={setGiveCurrencyId}
                 label="Выберите валюту"
@@ -287,7 +310,7 @@ export default function Home() {
             <div className="space-y-3 mb-6">
               <label className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Получаете</label>
               <CurrencySelector
-                currencies={allCurrencies}
+                currencies={availableReceiveCurrencies}
                 selectedId={receiveCurrencyId}
                 onSelect={setReceiveCurrencyId}
                 label="Выберите валюту"
