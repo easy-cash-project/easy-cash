@@ -54,11 +54,14 @@ export const appRouter = router({
         }
         
         // Create JWT session token
-        const sessionToken = sdk.createSessionToken({
+        const tokenPayload = {
           openId: user.openId,
           appId: "easycash-app",
           name: user.name || user.openId,
-        });
+        };
+        console.log("[Auth] Creating JWT with payload:", tokenPayload);
+        const sessionToken = sdk.createSessionToken(tokenPayload);
+        console.log("[Auth] JWT created successfully, token length:", sessionToken.length);
         
         // Return token for client to store in localStorage
         return { success: true, user, token: sessionToken };
