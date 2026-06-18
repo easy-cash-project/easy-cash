@@ -16,18 +16,27 @@ export default function AdminLogin() {
 
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: async (data) => {
-      console.log("Login successful:", data);
+      console.log("[AdminLogin] onSuccess called with data:", JSON.stringify(data, null, 2));
+      console.log("[AdminLogin] data.token:", data?.token ? "EXISTS (" + data.token.length + " chars)" : "MISSING");
+      console.log("[AdminLogin] data.user:", data?.user ? "EXISTS" : "MISSING");
       
       // Store JWT token in localStorage
       if (data.token) {
+        console.log("[AdminLogin] Storing token in localStorage...");
         localStorage.setItem("auth-token", data.token);
-        console.log("JWT token stored in localStorage");
+        const stored = localStorage.getItem("auth-token");
+        console.log("[AdminLogin] Token stored verification:", stored ? "SUCCESS" : "FAILED");
+      } else {
+        console.error("[AdminLogin] ERROR: No token in response!");
       }
       
       // Store user data directly in localStorage to bypass auth.me query
       if (data.user) {
+        console.log("[AdminLogin] Storing user data in localStorage...");
         localStorage.setItem("user-data", JSON.stringify(data.user));
-        console.log("User data stored in localStorage:", data.user);
+        console.log("[AdminLogin] User data stored:", data.user);
+      } else {
+        console.error("[AdminLogin] ERROR: No user in response!");
       }
       
       toast.success("Вход выполнен успешно!");
@@ -41,7 +50,9 @@ export default function AdminLogin() {
       setLocation("/moneymaker777/orders");
     },
     onError: (err) => {
-      console.error("Login error:", err);
+      console.error("[AdminLogin] ERROR:", err);
+      console.error("[AdminLogin] Error message:", err.message);
+      console.error("[AdminLogin] Error code:", err.code);
       toast.error(err.message || "Ошибка входа");
     },
   });
@@ -61,13 +72,14 @@ export default function AdminLogin() {
 
     setIsLoading(true);
     try {
-      console.log("Attempting login with:", { openId: openId.trim() });
-      await loginMutation.mutateAsync({
+      console.log("[AdminLogin] Attempting login with:", { openId: openId.trim() });
+      const result = await loginMutation.mutateAsync({
         openId: openId.trim(),
         password: password.trim(),
       });
+      console.log("[AdminLogin] Mutation result:", result);
     } catch (error) {
-      console.error("Login mutation error:", error);
+      console.error("[AdminLogin] Login mutation error:", error);
     } finally {
       setIsLoading(false);
     }
