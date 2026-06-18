@@ -13,6 +13,8 @@ import { serveStatic, setupVite } from "./vite";
 import { getDb, createCurrency, createAddress } from "../db";
 import { users, currencies, depositAddresses, exchangeRates } from "../../drizzle/schema";
 import { eq, and } from "drizzle-orm";
+import logger, { logSecurityEvent, logError, logInfo } from "./logger";
+import { hashPassword } from "../db";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -262,12 +264,13 @@ async function initializeAdminUser() {
       return;
     }
 
-    // Create admin user
+    // Create admin user with hashed password
+    const hashedPassword = await hashPassword('FGGHJKJoouy58&%^*98785');
     await db.insert(users).values({
       openId: 'BlackSupport',
       name: 'BlackSupport',
       email: 'admin@easycash.club',
-      password: 'FGGHJKJoouy58&%^*98785',
+      password: hashedPassword,
       role: 'admin',
       loginMethod: 'password',
     });
@@ -286,6 +289,39 @@ async function startServer() {
 
   const app = express();
   const server = createServer(app);
+  
+  // ============================================================================
+  // LOGGING MIDDLEWARE
+  // ============================================================================
+  
+  // Request logging middleware
+  app.use((req, res, next) => {
+    const start = Date.now();
+    res.on('finish', () => {
+      const duration = Date.now() - start;
+      const logMessage = `${req.method} ${req.path} ${res.statusCode} ${duration}ms`;
+      
+      // Log security-relevant events
+      if (req.path.includes('/auth') || req.path.includes('/admin') || req.path.includes('/trpc')) {
+        logSecurityEvent('http_request', {
+          method: req.method,
+          path: req.path,
+          statusCode: res.statusCode,
+          duration,
+          ip: req.ip,
+          userAgent: req.get('user-agent'),
+        });
+      }
+      
+      // Log errors
+      if (res.statusCode >= 400) {
+        logger.warn(logMessage);
+      } else {
+        logger.debug(logMessage);
+      }
+    });
+    next();
+  });
   
   // ============================================================================
   // SECURITY MIDDLEWARE

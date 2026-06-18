@@ -6,6 +6,7 @@ import { sdk } from "./_core/sdk";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { nanoid } from "nanoid";
+import { hashPassword, verifyPassword } from "./db";
 import {
   getAllCurrencies, getCurrencyById, createCurrency, updateCurrency, deleteCurrency,
   getAllRates, getRateForPair, createRate, updateRate, deleteRate,
@@ -50,7 +51,17 @@ export const appRouter = router({
           });
         }
         
-        if (!user.password || user.password !== input.password) {
+        if (!user.password) {
+          console.log("[Login] No password set for user");
+          throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "Invalid OpenID or password",
+          });
+        }
+        
+        // Verify password using bcrypt
+        const passwordMatch = await verifyPassword(input.password, user.password);
+        if (!passwordMatch) {
           console.log("[Login] Password mismatch");
           throw new TRPCError({
             code: "UNAUTHORIZED",
@@ -100,11 +111,13 @@ export const appRouter = router({
     setPassword: publicProcedure
       .input(z.object({
         openId: z.string().min(1),
-        password: z.string().min(1),
+        password: z.string().min(8, "Пароль должен содержать минимум 8 символов"),
       }))
       .mutation(async ({ input }) => {
+        // Hash password before storing
+        const hashedPassword = await hashPassword(input.password);
         const user = await updateUser(input.openId, {
-          password: input.password,
+          password: hashedPassword,
         });
         if (!user) {
           throw new TRPCError({
@@ -498,11 +511,13 @@ export const appRouter = router({
             message: "User with this OpenID already exists",
           });
         }
+        // Hash password before storing
+        const hashedPassword = await hashPassword(input.password);
         const user = await createUser({
           openId: input.openId,
           name: input.name ?? null,
           email: input.email ?? null,
-          password: input.password,
+          password: hashedPassword,
           role: input.role,
           status: input.status,
         });
@@ -535,7 +550,10 @@ export const appRouter = router({
         const updates: Record<string, any> = {};
         if (input.name !== undefined) updates.name = input.name;
         if (input.email !== undefined) updates.email = input.email;
-        if (input.password) updates.password = input.password;
+        if (input.password) {
+          // Hash password before storing
+          updates.password = await hashPassword(input.password);
+        }
         if (input.role) updates.role = input.role;
         if (input.status) updates.status = input.status;
         

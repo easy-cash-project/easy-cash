@@ -4,9 +4,21 @@ import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
 import path from "path";
+import bcrypt from "bcrypt";
 import { InsertUser, users, currencies, exchangeRates, depositAddresses, orders } from "../drizzle/schema";
 import type { InsertCurrency, InsertExchangeRate, InsertDepositAddress, InsertOrder } from "../drizzle/schema";
 import { ENV } from './_core/env';
+
+// Password hashing utilities
+const SALT_ROUNDS = 10;
+
+export async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, SALT_ROUNDS);
+}
+
+export async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  return bcrypt.compare(password, hash);
+}
 
 let _db: ReturnType<typeof drizzle> | null = null;
 let _connection: ReturnType<typeof postgres> | null = null;
