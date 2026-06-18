@@ -123,6 +123,8 @@ async function initializeSeedData() {
           .where(and(eq(exchangeRates.fromCurrencyId, fromId), eq(exchangeRates.toCurrencyId, rubId)))
           .limit(1);
         
+        console.log(`[Init] Query result for ${fromCrypto} -> RUB: existing.length=${existing.length}`);
+        
         if (existing.length === 0) {
           console.log(`[Init] Inserting rate: ${fromCrypto} (${fromId}) -> RUB (${rubId}), baseRate=${priceRub}`);
           try {
