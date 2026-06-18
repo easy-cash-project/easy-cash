@@ -12,6 +12,7 @@ import AdminLogin from "./pages/AdminLogin";
 import AdminOrders from "./pages/admin/AdminOrders";
 import AdminRates from "./pages/admin/AdminRates";
 import AdminAddresses from "./pages/admin/AdminAddresses";
+import AdminUsers from "./pages/admin/AdminUsers";
 import AdminCurrencies from "./pages/AdminCurrencies";
 
 function Router() {
@@ -27,7 +28,8 @@ function Router() {
       <Route path={"/moneymaker777/orders"} component={AdminOrders} />
       <Route path={"/moneymaker777/rates"} component={AdminRates} />
       <Route path={"/moneymaker777/addresses"} component={AdminAddresses} />
-      <Route path={"/moneymaker777/currencies"} component={AdminCurrencies} />
+      <Route path={"/ moneymaker777/currencies"} component={AdminCurrencies} />
+      <Route path={"/ moneymaker777/users"} component={AdminUsers} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>

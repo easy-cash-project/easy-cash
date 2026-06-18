@@ -1,8 +1,9 @@
 import { serial, pgEnum, pgTable, text, timestamp, varchar, numeric } from "drizzle-orm/pg-core";
 
-const roleEnum = pgEnum("role", ["user", "admin"]);
+const roleEnum = pgEnum("role", ["user", "admin", "manager", "operator", "viewer"]);
 const typeEnum = pgEnum("type", ["crypto", "fiat"]);
-const statusEnum = pgEnum("status", ["pending", "payment_received", "processing", "completed", "cancelled"]);
+const userStatusEnum = pgEnum("user_status", ["active", "inactive"]);
+const orderStatusEnum = pgEnum("order_status", ["pending", "payment_received", "processing", "completed", "cancelled"]);
 
 /**
  * Core user table backing auth flow.
@@ -15,6 +16,7 @@ export const users = pgTable("users", {
   password: varchar("password", { length: 255 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: roleEnum("role").default("user").notNull(),
+  status: userStatusEnum("status").default("active").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -98,7 +100,7 @@ export const orders = pgTable("orders", {
   payoutDetails: text("payoutDetails").notNull(), // card number or crypto address for payout
   depositAddress: varchar("depositAddress", { length: 512 }).notNull(), // address shown to client
   telegramHandle: varchar("telegramHandle", { length: 128 }).notNull(),
-  status: statusEnum("status").default("pending").notNull(),
+  status: orderStatusEnum("status").default("pending").notNull(),
   adminNote: text("adminNote"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
