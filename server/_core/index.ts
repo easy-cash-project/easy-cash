@@ -8,7 +8,7 @@ import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
-import { getDb } from "../db";
+import { getDb, createCurrency, createAddress } from "../db";
 import { users } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
 
@@ -29,6 +29,100 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
     }
   }
   throw new Error(`No available port found starting from ${startPort}`);
+}
+
+async function initializeSeedData() {
+  try {
+    const db = await getDb();
+    if (!db) {
+      console.log("[Init] Database not available, skipping seed data initialization");
+      return;
+    }
+
+    // Seed currencies
+    const currenciesToSeed = [
+      { code: 'USDT_TRC20', name: 'USDT (Tron)', type: 'crypto' as const, network: 'TRC20', symbol: '₮', isActive: 1 },
+      { code: 'USDT_BEP20', name: 'USDT (BSC)', type: 'crypto' as const, network: 'BEP20', symbol: '₮', isActive: 1 },
+      { code: 'USDT_SOL', name: 'USDT (Solana)', type: 'crypto' as const, network: 'SOL', symbol: '₮', isActive: 1 },
+      { code: 'USDT_TON', name: 'USDT (Ton)', type: 'crypto' as const, network: 'TON', symbol: '₮', isActive: 1 },
+      { code: 'BTC', name: 'Bitcoin', type: 'crypto' as const, network: 'BTC', symbol: '₿', isActive: 1 },
+      { code: 'ETH', name: 'Ethereum', type: 'crypto' as const, network: 'ETH', symbol: 'Ξ', isActive: 1 },
+      { code: 'LTC', name: 'Litecoin', type: 'crypto' as const, network: 'LTC', symbol: 'Ł', isActive: 1 },
+      { code: 'TON', name: 'Toncoin', type: 'crypto' as const, network: 'TON', symbol: '💎', isActive: 1 },
+      { code: 'XMR', name: 'Monero', type: 'crypto' as const, network: 'XMR', symbol: 'ɱ', isActive: 1 },
+      { code: 'RUB', name: 'Russian Ruble', type: 'fiat' as const, network: 'RUB', symbol: '₽', isActive: 1 },
+    ];
+
+    let currencyMap: Record<string, number> = {};
+    for (const curr of currenciesToSeed) {
+      try {
+        const existing = await db.select().from(users).limit(1); // Quick check if DB is working
+        // Try to get existing currency
+        const result = await db.query(`SELECT id FROM currencies WHERE code = $1`, [curr.code]);
+        if (result && result.rows && result.rows.length > 0) {
+          currencyMap[curr.code] = result.rows[0].id;
+          console.log(`[Init] Currency already exists: ${curr.code}`);
+        } else {
+          // Insert new currency
+          const insertResult = await db.query(
+            `INSERT INTO currencies (code, name, type, network, symbol, isActive) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+            [curr.code, curr.name, curr.type, curr.network, curr.symbol, curr.isActive]
+          );
+          if (insertResult && insertResult.rows && insertResult.rows.length > 0) {
+            currencyMap[curr.code] = insertResult.rows[0].id;
+            console.log(`[Init] ✅ Currency seeded: ${curr.code}`);
+          }
+        }
+      } catch (e) {
+        console.log(`[Init] Skipping currency seed (DB might not support raw queries): ${curr.code}`);
+      }
+    }
+
+    // Seed deposit addresses
+    const addressesToSeed = [
+      { currencyCode: 'USDT_TRC20', address: 'TWc1QzHxa5JcdbBCNmem3Ab7T6GyRUwexK', label: 'USDT TRC20 Wallet' },
+      { currencyCode: 'USDT_BEP20', address: '0x8D73D376410Eec9b5DAaA9612E69754432372191', label: 'USDT BEP20 Wallet' },
+      { currencyCode: 'USDT_SOL', address: '7Sujm4R4nC8W2z2eGx3T83jyFbfzPqBPu7BqjGYao5BY', label: 'USDT SOL Wallet' },
+      { currencyCode: 'USDT_TON', address: 'UQBraQDC2JTumcZMzSX0ZTtTSwOZt9INkhMJprIj4Z_ooh9i', label: 'USDT TON Wallet' },
+      { currencyCode: 'BTC', address: 'bc1qlge7n68ugkqap5u699a64j3veqn2kjwyp6thgj', label: 'Bitcoin Wallet' },
+      { currencyCode: 'ETH', address: '0x8D73D376410Eec9b5DAaA9612E69754432372191', label: 'Ethereum Wallet' },
+      { currencyCode: 'LTC', address: 'ltc1qsrtwj6v3xn5nkrkrn2cm2auskxavzc06pelvxc', label: 'Litecoin Wallet' },
+      { currencyCode: 'TON', address: 'UQBraQDC2JTumcZMzSX0ZTtTSwOZt9INkhMJprIj4Z_ooh9i', label: 'Toncoin Wallet' },
+      { currencyCode: 'XMR', address: '7Sujm4R4nC8W2z2eGx3T83jyFbfzPqBPu7BqjGYao5BY', label: 'Monero Wallet' },
+    ];
+
+    for (const addr of addressesToSeed) {
+      try {
+        const currencyId = currencyMap[addr.currencyCode];
+        if (!currencyId) {
+          console.log(`[Init] Currency not found for address: ${addr.currencyCode}`);
+          continue;
+        }
+
+        // Check if address already exists
+        const existing = await db.query(
+          `SELECT id FROM deposit_addresses WHERE "currencyId" = $1 AND address = $2`,
+          [currencyId, addr.address]
+        );
+        if (existing && existing.rows && existing.rows.length > 0) {
+          console.log(`[Init] Address already exists for ${addr.currencyCode}`);
+        } else {
+          // Insert new address
+          await db.query(
+            `INSERT INTO deposit_addresses ("currencyId", address, label, "isActive") VALUES ($1, $2, $3, $4)`,
+            [currencyId, addr.address, addr.label, 1]
+          );
+          console.log(`[Init] ✅ Address seeded: ${addr.currencyCode}`);
+        }
+      } catch (e) {
+        console.log(`[Init] Skipping address seed: ${addr.currencyCode}`);
+      }
+    }
+
+    console.log("[Init] Seed data initialization completed!");
+  } catch (error) {
+    console.error("[Init] Error initializing seed data:", error);
+  }
 }
 
 async function initializeAdminUser() {
@@ -65,6 +159,9 @@ async function initializeAdminUser() {
 async function startServer() {
   // Initialize admin user on startup
   await initializeAdminUser();
+  
+  // Initialize seed data on startup
+  await initializeSeedData();
 
   const app = express();
   const server = createServer(app);
