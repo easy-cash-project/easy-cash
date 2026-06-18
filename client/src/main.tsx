@@ -42,7 +42,7 @@ queryClient.getMutationCache().subscribe(event => {
 const trpcClient = trpc.createClient({
   links: [
     httpBatchStreamLink({
-      url: "/api/trpc",
+      url: "/trpc",
       transformer: superjson,
       fetch(input, init) {
         const token = localStorage.getItem("auth-token");
