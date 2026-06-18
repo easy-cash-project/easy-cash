@@ -41,16 +41,16 @@ async function initializeSeedData() {
 
     // Seed currencies using Drizzle ORM
     const currenciesToSeed = [
-      { code: 'USDT_TRC20', name: 'USDT (Tron)', type: 'crypto' as const, network: 'TRC20', symbol: '₮', isActive: 1 },
-      { code: 'USDT_BEP20', name: 'USDT (BSC)', type: 'crypto' as const, network: 'BEP20', symbol: '₮', isActive: 1 },
-      { code: 'USDT_SOL', name: 'USDT (Solana)', type: 'crypto' as const, network: 'SOL', symbol: '₮', isActive: 1 },
-      { code: 'USDT_TON', name: 'USDT (Ton)', type: 'crypto' as const, network: 'TON', symbol: '₮', isActive: 1 },
-      { code: 'BTC', name: 'Bitcoin', type: 'crypto' as const, network: 'BTC', symbol: '₿', isActive: 1 },
-      { code: 'ETH', name: 'Ethereum', type: 'crypto' as const, network: 'ETH', symbol: 'Ξ', isActive: 1 },
-      { code: 'LTC', name: 'Litecoin', type: 'crypto' as const, network: 'LTC', symbol: 'Ł', isActive: 1 },
-      { code: 'TON', name: 'Toncoin', type: 'crypto' as const, network: 'TON', symbol: '💎', isActive: 1 },
-      { code: 'XMR', name: 'Monero', type: 'crypto' as const, network: 'XMR', symbol: 'ɱ', isActive: 1 },
-      { code: 'RUB', name: 'Russian Ruble', type: 'fiat' as const, network: 'RUB', symbol: '₽', isActive: 1 },
+        { code: 'USDT_TRC20', name: 'USDT (Tron)', type: 'crypto' as const, network: 'TRC20', symbol: '₮', isActive: true },
+      { code: 'USDT_BEP20', name: 'USDT (BSC)', type: 'crypto' as const, network: 'BEP20', symbol: '₮', isActive: true },
+      { code: 'USDT_SOL', name: 'USDT (Solana)', type: 'crypto' as const, network: 'SOL', symbol: '₮', isActive: true },
+      { code: 'USDT_TON', name: 'USDT (Ton)', type: 'crypto' as const, network: 'TON', symbol: '₮', isActive: true },
+      { code: 'BTC', name: 'Bitcoin', type: 'crypto' as const, network: 'BTC', symbol: '₿', isActive: true },
+      { code: 'ETH', name: 'Ethereum', type: 'crypto' as const, network: 'ETH', symbol: 'Ξ', isActive: true },
+      { code: 'LTC', name: 'Litecoin', type: 'crypto' as const, network: 'LTC', symbol: 'Ł', isActive: true },
+      { code: 'TON', name: 'Toncoin', type: 'crypto' as const, network: 'TON', symbol: '💎', isActive: true },
+      { code: 'XMR', name: 'Monero', type: 'crypto' as const, network: 'XMR', symbol: 'ɱ', isActive: true },
+      { code: 'RUB', name: 'Russian Ruble', type: 'fiat' as const, network: 'RUB', symbol: '₽', isActive: true },
     ];
 
     let currencyMap: Record<string, number> = {};
@@ -117,7 +117,7 @@ async function initializeSeedData() {
             toCurrencyId: rubId,
             baseRate: priceRub.toString(),
             markupPercent: '0',
-            isActive: 1,
+            isActive: true,
           });
           console.log(`[Init] ✅ Rate seeded: ${fromCrypto} -> RUB`);
           ratesCreated++;
@@ -135,7 +135,7 @@ async function initializeSeedData() {
             toCurrencyId: fromId,
             baseRate: rubToCryptoRate,
             markupPercent: '0',
-            isActive: 1,
+            isActive: true,
           });
           console.log(`[Init] ✅ Rate seeded: RUB -> ${fromCrypto}`);
           ratesCreated++;
@@ -162,7 +162,7 @@ async function initializeSeedData() {
               toCurrencyId: toId,
               baseRate: cryptoToCryptoRate,
               markupPercent: '0',
-              isActive: 1,
+              isActive: true,
             });
             ratesCreated++;
           }
@@ -207,7 +207,7 @@ async function initializeSeedData() {
             currencyId,
             address: addr.address,
             label: addr.label,
-            isActive: 1,
+            isActive: true,
           });
           console.log(`[Init] ✅ Address seeded: ${addr.currencyCode}`);
         }

@@ -39,7 +39,7 @@ export const currencies = pgTable("currencies", {
   symbol: varchar("symbol", { length: 16 }),
   icon: varchar("icon", { length: 512 }),
   category: varchar("category", { length: 32 }), // Crypto, Карты, Cash, ATM
-  isActive: integer("isActive").default(1).notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
   sortOrder: integer("sortOrder").default(0).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
@@ -62,7 +62,7 @@ export const exchangeRates = pgTable("exchange_rates", {
   markupPercent: numeric("markupPercent", { precision: 5, scale: 2 }).default("0").notNull(),
   minAmount: numeric("minAmount", { precision: 20, scale: 8 }),
   maxAmount: numeric("maxAmount", { precision: 20, scale: 8 }),
-  isActive: integer("isActive").default(1).notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });
@@ -78,7 +78,7 @@ export const depositAddresses = pgTable("deposit_addresses", {
   currencyId: integer("currencyId").notNull(),
   address: varchar("address", { length: 512 }).notNull(),
   label: varchar("label", { length: 128 }),
-  isActive: integer("isActive").default(1).notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });
