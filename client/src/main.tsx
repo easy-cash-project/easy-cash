@@ -40,37 +40,45 @@ queryClient.getMutationCache().subscribe(event => {
   }
 });
 
-const trpcClient = trpc.createClient({
-  links: [
-    httpBatchStreamLink({
-      url: "/trpc",
-      transformer: superjson,
-      fetch(input, init) {
-        const token = localStorage.getItem("auth-token");
-        const headers = new Headers(init?.headers || {});
-        
-        console.log("[TRPC] Fetch called for:", input);
-        console.log("[TRPC] Token from localStorage:", token ? `${token.substring(0, 20)}...` : "null");
-        
-        // Always send JWT token in Authorization header
-        if (token) {
-          headers.set("Authorization", `Bearer ${token}`);
-          console.log("[TRPC] Authorization header set with JWT token");
-        } else {
-          console.log("[TRPC] No JWT token found in localStorage");
-        }
-        
-        console.log("[TRPC] Headers being sent:", Object.fromEntries(headers));
-        
-        return globalThis.fetch(input, {
-          ...(init ?? {}),
-          headers,
-          credentials: "omit", // Don't send cookies, use JWT instead
-        });
-      },
-    }),
-  ],
-});
+let trpcClient;
+try {
+  console.log("[TRPC] Creating TRPC client...");
+  trpcClient = trpc.createClient({
+    links: [
+      httpBatchStreamLink({
+        url: "/trpc",
+        transformer: superjson,
+        fetch(input, init) {
+          const token = localStorage.getItem("auth-token");
+          const headers = new Headers(init?.headers || {});
+          
+          console.log("[TRPC] Fetch called for:", input);
+          console.log("[TRPC] Token from localStorage:", token ? `${token.substring(0, 20)}...` : "null");
+          
+          // Always send JWT token in Authorization header
+          if (token) {
+            headers.set("Authorization", `Bearer ${token}`);
+            console.log("[TRPC] Authorization header set with JWT token");
+          } else {
+            console.log("[TRPC] No JWT token found in localStorage");
+          }
+          
+          console.log("[TRPC] Headers being sent:", Object.fromEntries(headers));
+          
+          return globalThis.fetch(input, {
+            ...(init ?? {}),
+            headers,
+            credentials: "omit", // Don't send cookies, use JWT instead
+          });
+        },
+      }),
+    ],
+  });
+  console.log("[TRPC] TRPC client created successfully");
+} catch (error) {
+  console.error("[TRPC] Error creating TRPC client:", error);
+  throw error;
+}
 
 createRoot(document.getElementById("root")!).render(
   <trpc.Provider client={trpcClient} queryClient={queryClient}>
