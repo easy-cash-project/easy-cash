@@ -9,7 +9,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { getDb, createCurrency, createAddress } from "../db";
-import { users, currencies, depositAddresses } from "../../drizzle/schema";
+import { users, currencies, depositAddresses, exchangeRates } from "../../drizzle/schema";
 import { eq, and } from "drizzle-orm";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -81,6 +81,97 @@ async function initializeSeedData() {
       currencyMap[curr.code] = curr.id;
     }
     console.log(`[Init] Currency map refreshed with ${Object.keys(currencyMap).length} currencies`);
+
+    // Seed exchange rates using Drizzle ORM
+    const cryptoCurrencies = ['USDT_TRC20', 'USDT_BEP20', 'USDT_SOL', 'USDT_TON', 'BTC', 'ETH', 'LTC', 'TON', 'XMR'];
+    const mockRates: Record<string, number> = {
+      'USDT_TRC20': 75,
+      'USDT_BEP20': 75,
+      'USDT_SOL': 75,
+      'USDT_TON': 75,
+      'BTC': 9250000,
+      'ETH': 350000,
+      'LTC': 12500,
+      'TON': 550,
+      'XMR': 25000,
+    };
+
+    let ratesCreated = 0;
+    for (const fromCrypto of cryptoCurrencies) {
+      const fromId = currencyMap[fromCrypto];
+      if (!fromId) continue;
+
+      const rubId = currencyMap['RUB'];
+      const priceRub = mockRates[fromCrypto];
+      if (!priceRub || !rubId) continue;
+
+      // Create rate for crypto -> RUB
+      try {
+        const existing = await db.select().from(exchangeRates)
+          .where(and(eq(exchangeRates.fromCurrencyId, fromId), eq(exchangeRates.toCurrencyId, rubId)))
+          .limit(1);
+        
+        if (existing.length === 0) {
+          await db.insert(exchangeRates).values({
+            fromCurrencyId: fromId,
+            toCurrencyId: rubId,
+            baseRate: priceRub.toString(),
+            markupPercent: '0',
+            isActive: 1,
+          });
+          console.log(`[Init] ✅ Rate seeded: ${fromCrypto} -> RUB`);
+          ratesCreated++;
+        }
+
+        // Create rate for RUB -> crypto
+        const rubToExisting = await db.select().from(exchangeRates)
+          .where(and(eq(exchangeRates.fromCurrencyId, rubId), eq(exchangeRates.toCurrencyId, fromId)))
+          .limit(1);
+        
+        if (rubToExisting.length === 0) {
+          const rubToCryptoRate = (1 / priceRub).toFixed(8);
+          await db.insert(exchangeRates).values({
+            fromCurrencyId: rubId,
+            toCurrencyId: fromId,
+            baseRate: rubToCryptoRate,
+            markupPercent: '0',
+            isActive: 1,
+          });
+          console.log(`[Init] ✅ Rate seeded: RUB -> ${fromCrypto}`);
+          ratesCreated++;
+        }
+
+        // Create rates between crypto currencies
+        for (const toCrypto of cryptoCurrencies) {
+          if (fromCrypto === toCrypto) continue;
+
+          const toId = currencyMap[toCrypto];
+          if (!toId) continue;
+
+          const toPriceRub = mockRates[toCrypto];
+          if (!toPriceRub) continue;
+
+          const cryptoExisting = await db.select().from(exchangeRates)
+            .where(and(eq(exchangeRates.fromCurrencyId, fromId), eq(exchangeRates.toCurrencyId, toId)))
+            .limit(1);
+
+          if (cryptoExisting.length === 0) {
+            const cryptoToCryptoRate = (priceRub / toPriceRub).toFixed(8);
+            await db.insert(exchangeRates).values({
+              fromCurrencyId: fromId,
+              toCurrencyId: toId,
+              baseRate: cryptoToCryptoRate,
+              markupPercent: '0',
+              isActive: 1,
+            });
+            ratesCreated++;
+          }
+        }
+      } catch (e) {
+        console.error(`[Init] Error seeding rates for ${fromCrypto}:`, e);
+      }
+    }
+    console.log(`[Init] Exchange rates seeded: ${ratesCreated} rates created`);
 
     // Seed deposit addresses using Drizzle ORM
     const addressesToSeed = [
