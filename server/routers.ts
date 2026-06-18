@@ -14,6 +14,7 @@ import {
   createUser, getUserByOpenId, updateUser
 } from "./db";
 import { notifyOwner } from "./_core/notification";
+import { parseRates, getRate, ratesCache } from "./_core/rates-parser";
 
 // Admin-only procedure
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -130,6 +131,39 @@ export const appRouter = router({
     listAll: publicProcedure.query(async () => {
       return getAllRates(true);
     }),
+    // Crypto rates from Rapira + CoinGecko
+    cryptoRates: publicProcedure.query(async () => {
+      try {
+        return await ratesCache.get();
+      } catch (error) {
+        console.error("Error fetching crypto rates:", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to fetch crypto rates",
+        });
+      }
+    }),
+    // Get single crypto rate
+    getCryptoRate: publicProcedure
+      .input(z.object({ symbol: z.string() }))
+      .query(async ({ input }) => {
+        try {
+          const rate = await getRate(input.symbol);
+          if (!rate) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: `Rate not found for ${input.symbol}`,
+            });
+          }
+          return rate;
+        } catch (error) {
+          console.error(`Error fetching rate for ${input.symbol}:`, error);
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to fetch crypto rate",
+          });
+        }
+      }),
   }),
 
   // ============ PUBLIC: Orders ============
