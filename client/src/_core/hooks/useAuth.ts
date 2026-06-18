@@ -12,28 +12,38 @@ export function useAuth(options?: UseAuthOptions) {
   const { redirectOnUnauthenticated = false, redirectPath = getLoginUrl() } =
     options ?? {};
   const utils = trpc.useUtils();
-  const [tokenLoaded, setTokenLoaded] = useState(false);
+  const [userData, setUserData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Wait for token to be loaded from localStorage before executing auth.me query
+  // Load user data from localStorage on mount
   useEffect(() => {
-    // Check if token exists in localStorage
-    const token = localStorage.getItem("auth-token");
-    console.log("[useAuth] Token loaded from localStorage:", !!token);
-    setTokenLoaded(true);
+    try {
+      const storedUserData = localStorage.getItem("user-data");
+      if (storedUserData) {
+        const user = JSON.parse(storedUserData);
+        console.log("[useAuth] User data loaded from localStorage:", user);
+        setUserData(user);
+      }
+    } catch (error) {
+      console.error("[useAuth] Failed to parse user data from localStorage:", error);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
-  // Query to get current user info - will use JWT from localStorage
+  // Fallback: try auth.me query if no user data in localStorage
   const meQuery = trpc.auth.me.useQuery(undefined, {
-    enabled: tokenLoaded, // Only execute after token is loaded
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    refetchOnWindowFocus: true,
+    enabled: !userData && !isLoading, // Only if no user data from localStorage
+    retry: 1,
+    retryDelay: 1000,
   });
 
   const logoutMutation = trpc.auth.logout.useMutation({
     onSuccess: () => {
-      // Clear token from localStorage
+      // Clear token and user data from localStorage
       localStorage.removeItem("auth-token");
+      localStorage.removeItem("user-data");
+      setUserData(null);
       utils.auth.me.setData(undefined, null);
     },
   });
@@ -50,31 +60,37 @@ export function useAuth(options?: UseAuthOptions) {
       }
       throw error;
     } finally {
-      // Always clear token on logout
+      // Always clear token and user data on logout
       localStorage.removeItem("auth-token");
+      localStorage.removeItem("user-data");
+      setUserData(null);
       utils.auth.me.setData(undefined, null);
       await utils.auth.me.invalidate();
     }
   }, [logoutMutation, utils]);
 
   const state = useMemo(() => {
+    // Use userData from localStorage if available, otherwise use meQuery data
+    const currentUser = userData || meQuery.data;
+    
     localStorage.setItem(
       "manus-runtime-user-info",
-      JSON.stringify(meQuery.data)
+      JSON.stringify(currentUser)
     );
     return {
-      user: meQuery.data ?? null,
-      loading: meQuery.isLoading || logoutMutation.isPending || !tokenLoaded,
+      user: currentUser ?? null,
+      loading: isLoading || meQuery.isLoading || logoutMutation.isPending,
       error: meQuery.error ?? logoutMutation.error ?? null,
-      isAuthenticated: Boolean(meQuery.data),
+      isAuthenticated: Boolean(currentUser),
     };
   }, [
+    userData,
     meQuery.data,
     meQuery.error,
     meQuery.isLoading,
     logoutMutation.error,
     logoutMutation.isPending,
-    tokenLoaded,
+    isLoading,
   ]);
 
   useEffect(() => {

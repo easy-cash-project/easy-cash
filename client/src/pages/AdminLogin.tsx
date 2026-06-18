@@ -18,10 +18,16 @@ export default function AdminLogin() {
     onSuccess: async (data) => {
       console.log("Login successful:", data);
       
-      // Store JWT token in localStorage BEFORE any other operations
+      // Store JWT token in localStorage
       if (data.token) {
         localStorage.setItem("auth-token", data.token);
         console.log("JWT token stored in localStorage");
+      }
+      
+      // Store user data directly in localStorage to bypass auth.me query
+      if (data.user) {
+        localStorage.setItem("user-data", JSON.stringify(data.user));
+        console.log("User data stored in localStorage:", data.user);
       }
       
       toast.success("Вход выполнен успешно!");
@@ -30,11 +36,7 @@ export default function AdminLogin() {
       setOpenId("");
       setPassword("");
       
-      // Wait for token to be stored
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
       // Redirect to admin panel immediately
-      // The token is now in localStorage and TRPC client will use it
       console.log("Redirecting to admin panel");
       setLocation("/moneymaker777/orders");
     },
