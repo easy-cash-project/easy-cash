@@ -125,15 +125,39 @@ export const appRouter = router({
     getForPair: publicProcedure
       .input(z.object({ fromCurrencyId: z.number(), toCurrencyId: z.number() }))
       .query(async ({ input }) => {
-        const rate = await getRateForPair(input.fromCurrencyId, input.toCurrencyId);
-        if (!rate) return null;
-        // Calculate effective rate with markup
-        const baseRate = parseFloat(rate.baseRate);
-        const markup = parseFloat(rate.markupPercent);
+        // Get currencies to find their codes
+        const fromCurrency = await getCurrencyById(input.fromCurrencyId);
+        const toCurrency = await getCurrencyById(input.toCurrencyId);
+        
+        if (!fromCurrency || !toCurrency) {
+          return null;
+        }
+        
+        // Get markup from DB
+        const dbRate = await getRateForPair(input.fromCurrencyId, input.toCurrencyId);
+        const markup = dbRate ? parseFloat(dbRate.markupPercent) : 0;
+        
+        // Get actual rate from Rapira rates matrix
+        const ratesMatrix = await ratesMatrixCache.get();
+        const rapiraRate = ratesMatrix.rates.find(
+          r => r.from === fromCurrency.code && r.to === toCurrency.code
+        );
+        
+        if (!rapiraRate) {
+          return null;
+        }
+        
+        // Calculate effective rate: Rapira rate * (1 + markup%)
+        const baseRate = rapiraRate.rate;
         const effectiveRate = baseRate * (1 + markup / 100);
+        
         return {
-          ...rate,
+          from: fromCurrency.code,
+          to: toCurrency.code,
+          baseRate: baseRate.toFixed(8),
+          markupPercent: markup.toFixed(2),
           effectiveRate: effectiveRate.toFixed(8),
+          rapiraRate: baseRate.toFixed(8),
         };
       }),
     listAll: publicProcedure.query(async () => {
