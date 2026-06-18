@@ -134,13 +134,17 @@ export async function buildRatesMatrix(): Promise<RatesMatrixResponse> {
 
   const rates: ExchangeRate[] = [];
 
-  // Get USDT/RUB rate from Rapira
+  // Get USDT/RUB rate from Rapira with fallback
   const usdtRubRate = rapiraRates.get('USDT/RUB');
-  if (!usdtRubRate) {
-    throw new Error('Could not fetch USDT/RUB rate from Rapira');
+  let usdtToRub = 1; // Default fallback
+  
+  if (usdtRubRate) {
+    usdtToRub = usdtRubRate.close || usdtRubRate.askPrice || 75; // Default to ~75 RUB per USDT
+    console.log('[Init] USDT/RUB rate from Rapira:', usdtToRub);
+  } else {
+    console.warn('[Init] Could not fetch USDT/RUB from Rapira, using fallback rate: 75');
+    usdtToRub = 75; // Fallback rate
   }
-
-  const usdtToRub = usdtRubRate.close || usdtRubRate.askPrice || 1;
 
   // Get base prices in USD
   const basePricesUsd: Map<string, number> = new Map();
