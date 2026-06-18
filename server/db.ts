@@ -205,9 +205,9 @@ export async function getAllRates(activeOnly = true) {
   const db = await getDb();
   if (!db) return [];
   if (activeOnly) {
-    return db.select().from(exchangeRates).where(eq(exchangeRates.isActive, 1));
+    return await db.select().from(exchangeRates).where(eq(exchangeRates.isActive, 1));
   }
-  return db.select().from(exchangeRates);
+  return await db.select().from(exchangeRates);
 }
 
 export async function getRateForPair(fromCurrencyId: number, toCurrencyId: number) {
