@@ -1,7 +1,7 @@
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { TRPCClientError } from "@trpc/client";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 
 type UseAuthOptions = {
   redirectOnUnauthenticated?: boolean;
@@ -12,24 +12,15 @@ export function useAuth(options?: UseAuthOptions) {
   const { redirectOnUnauthenticated = false, redirectPath = getLoginUrl() } =
     options ?? {};
   const utils = trpc.useUtils();
-  const [isTokenLoaded, setIsTokenLoaded] = useState(false);
-
-  // Check if token exists in localStorage on mount
-  useEffect(() => {
-    const token = localStorage.getItem("auth-token");
-    setIsTokenLoaded(true);
-  }, []);
 
   const meQuery = trpc.auth.me.useQuery(undefined, {
-    enabled: isTokenLoaded,
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true,
   });
 
   const logoutMutation = trpc.auth.logout.useMutation({
     onSuccess: () => {
-      localStorage.removeItem("auth-token");
       utils.auth.me.setData(undefined, null);
     },
   });
@@ -46,7 +37,6 @@ export function useAuth(options?: UseAuthOptions) {
       }
       throw error;
     } finally {
-      localStorage.removeItem("auth-token");
       utils.auth.me.setData(undefined, null);
       await utils.auth.me.invalidate();
     }
@@ -59,12 +49,11 @@ export function useAuth(options?: UseAuthOptions) {
     );
     return {
       user: meQuery.data ?? null,
-      loading: !isTokenLoaded || meQuery.isLoading || logoutMutation.isPending,
+      loading: meQuery.isLoading || logoutMutation.isPending,
       error: meQuery.error ?? logoutMutation.error ?? null,
       isAuthenticated: Boolean(meQuery.data),
     };
   }, [
-    isTokenLoaded,
     meQuery.data,
     meQuery.error,
     meQuery.isLoading,
