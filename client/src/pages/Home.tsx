@@ -230,36 +230,32 @@ export default function Home() {
 
   // Get available currencies for "give" (from) field
   const availableGiveCurrencies = useMemo(() => {
-    if (!currencies || !rates || rates.length === 0) return [];
-    const currencyCodes = new Set<string>();
+    if (!currencies || !rates || rates.length === 0) return currencies || [];
+    const currencyIds = new Set<number>();
     
     rates.forEach((rate: any) => {
-      // Rates matrix uses 'from' field with currency code
-      if (rate.from) {
-        currencyCodes.add(rate.from);
+      if (rate.fromCurrencyId) {
+        currencyIds.add(rate.fromCurrencyId);
       }
     });
     
-    console.log("Available give currency codes:", Array.from(currencyCodes));
-    return currencies.filter(c => currencyCodes.has(c.code));
+    console.log("Available give currency IDs:", Array.from(currencyIds));
+    return currencies.filter(c => currencyIds.has(c.id));
   }, [currencies, rates]);
 
   // Get available currencies for "receive" (to) field based on selected "give" currency
   const availableReceiveCurrencies = useMemo(() => {
     if (!currencies || !rates || !giveCurrencyId || rates.length === 0) return [];
     
-    const giveCurrency = currencies.find(c => c.id === giveCurrencyId);
-    if (!giveCurrency) return [];
-    
-    const currencyCodes = new Set<string>();
+    const currencyIds = new Set<number>();
     rates.forEach((rate: any) => {
-      if (rate.from === giveCurrency.code && rate.to) {
-        currencyCodes.add(rate.to);
+      if (rate.fromCurrencyId === giveCurrencyId && rate.toCurrencyId) {
+        currencyIds.add(rate.toCurrencyId);
       }
     });
     
-    console.log("Available receive currency codes:", Array.from(currencyCodes));
-    return currencies.filter(c => currencyCodes.has(c.code));
+    console.log("Available receive currency IDs:", Array.from(currencyIds));
+    return currencies.filter(c => currencyIds.has(c.id));
   }, [currencies, rates, giveCurrencyId]);
 
   if (createOrderMutation.isPending) {
