@@ -114,13 +114,14 @@ export const appRouter = router({
 
   // ============ PUBLIC: Rates ============
   rates: router({
+    // Get exchange rate between two specific currencies by ID
     getForPair: publicProcedure
       .input(z.object({ fromCurrencyId: z.number(), toCurrencyId: z.number() }))
       .query(async ({ input }) => {
         const rate = await getRateForPair(input.fromCurrencyId, input.toCurrencyId);
         if (!rate) return null;
         // Calculate effective rate with markup
-        const baseRate = parseFloat(rate.rate);
+        const baseRate = parseFloat(rate.baseRate);
         const markup = parseFloat(rate.markupPercent);
         const effectiveRate = baseRate * (1 + markup / 100);
         return {

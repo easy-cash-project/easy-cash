@@ -106,8 +106,11 @@ function CurrencySelector({
 export default function Home() {
   const [, navigate] = useLocation();
   const { data: currencies, isLoading: currenciesLoading } = trpc.currencies.list.useQuery();
-  const { data: rates } = trpc.rates.listAll.useQuery();
+  const { data: ratesMatrix } = trpc.rates.matrix.useQuery();
   const { data: addresses } = trpc.addresses.list.useQuery();
+  
+  // Extract rates array from matrix
+  const rates = ratesMatrix?.rates || [];
 
   const [giveCurrencyId, setGiveCurrencyId] = useState<number | null>(null);
   const [receiveCurrencyId, setReceiveCurrencyId] = useState<number | null>(null);
