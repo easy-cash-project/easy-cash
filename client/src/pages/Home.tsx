@@ -126,9 +126,9 @@ export default function Home() {
   useEffect(() => {
     if (currencies && currencies.length > 0 && !giveCurrencyId) {
       const btc = currencies.find(c => c.code === "BTC");
-      const visamc = currencies.find(c => c.code === "VISA_MC");
+      const rub = currencies.find(c => c.code === "RUB");
       if (btc) setGiveCurrencyId(btc.id);
-      if (visamc) setReceiveCurrencyId(visamc.id);
+      if (rub) setReceiveCurrencyId(rub.id);
     }
   }, [currencies, giveCurrencyId]);
 
@@ -220,24 +220,37 @@ export default function Home() {
 
   // Get available currencies for "give" (from) field
   const availableGiveCurrencies = useMemo(() => {
-    if (!currencies || !rates) return [];
-    const currencyIds = new Set<number>();
-    rates.forEach(rate => {
-      currencyIds.add(rate.fromCurrencyId);
+    if (!currencies || !rates || rates.length === 0) return [];
+    const currencyCodes = new Set<string>();
+    
+    rates.forEach((rate: any) => {
+      // Rates matrix uses 'from' field with currency code
+      if (rate.from) {
+        currencyCodes.add(rate.from);
+      }
     });
-    return currencies.filter(c => currencyIds.has(c.id));
+    
+    console.log("Available give currency codes:", Array.from(currencyCodes));
+    return currencies.filter(c => currencyCodes.has(c.code));
   }, [currencies, rates]);
 
   // Get available currencies for "receive" (to) field based on selected "give" currency
   const availableReceiveCurrencies = useMemo(() => {
-    if (!currencies || !rates || !giveCurrencyId) return [];
-    const currencyIds = new Set<number>();
-    rates.forEach(rate => {
-      if (rate.fromCurrencyId === giveCurrencyId) {
-        currencyIds.add(rate.toCurrencyId);
+    if (!currencies || !rates || !giveCurrencyId || rates.length === 0) return [];
+    
+    const giveCurrency = currencies.find(c => c.id === giveCurrencyId);
+    if (!giveCurrency) return [];
+    
+    const currencyCodes = new Set<string>();
+    rates.forEach((rate: any) => {
+      // Rates matrix uses 'from' and 'to' fields with currency codes
+      if (rate.from === giveCurrency.code && rate.to) {
+        currencyCodes.add(rate.to);
       }
     });
-    return currencies.filter(c => currencyIds.has(c.id));
+    
+    console.log(`Available receive currency codes for ${giveCurrency.code}:`, Array.from(currencyCodes));
+    return currencies.filter(c => currencyCodes.has(c.code));
   }, [currencies, rates, giveCurrencyId]);
 
   const rateAvailable = !!rateQuery.data;
@@ -353,244 +366,65 @@ export default function Home() {
 
             {!rateLoading && !rateAvailable && giveCurrencyId && receiveCurrencyId && (
               <div className="flex items-center gap-2 mb-6 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
-                <AlertCircle className="w-4 h-4 text-destructive shrink-0" />
-                <span className="text-sm text-destructive">Курс для этой пары не установлен.</span>
+                <AlertCircle className="w-4 h-4 text-destructive flex-shrink-0" />
+                <span className="text-sm text-destructive">Курс обмена недоступен для этой пары</span>
               </div>
             )}
 
-            {/* Deposit Address Section */}
-            {giveCurrency?.type === "crypto" && (
-              <div className="mb-6 p-4 rounded-xl bg-blue/5 border border-blue/20">
-                <label className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 block">Адрес для депозита</label>
-                {addresses && addresses.length > 0 ? (
-                  <div className="space-y-2">
-                    {addresses
-                      .filter(addr => addr.currencyId === giveCurrencyId)
-                      .map((addr) => (
-                        <div key={addr.id} className="flex items-center gap-2 p-3 rounded-lg bg-secondary/50 border border-border/30">
-                          <code className="flex-1 text-xs font-mono text-foreground break-all">{addr.address}</code>
-                          <button
-                            onClick={() => {
-                              navigator.clipboard.writeText(addr.address);
-                              setCopiedAddress(addr.address);
-                              setTimeout(() => setCopiedAddress(null), 2000);
-                              toast.success("Адрес скопирован!");
-                            }}
-                            className="p-2 hover:bg-primary/10 rounded transition-colors"
-                          >
-                            {copiedAddress === addr.address ? (
-                              <Check className="w-4 h-4 text-green-500" />
-                            ) : (
-                              <Copy className="w-4 h-4 text-muted-foreground" />
-                            )}
-                          </button>
-                        </div>
-                      ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">Адреса не добавлены</p>
-                )}
-              </div>
-            )}
-
-            {/* Details Section */}
-            <div className="space-y-4 mb-6 pt-4 border-t border-border/50">
-              <div className="space-y-2">
-                <label className="text-sm text-muted-foreground">Telegram для связи</label>
-                <Input
-                  placeholder="@username"
-                  value={telegramHandle}
-                  onChange={(e) => setTelegramHandle(e.target.value)}
-                  className="bg-secondary/50 border-border/50"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm text-muted-foreground">
-                  {receiveCurrency?.type === "fiat" ? "Номер карты / реквизиты для получения" : "Адрес кошелька для получения"}
-                </label>
-                <Input
-                  placeholder={receiveCurrency?.type === "fiat" ? "Номер карты" : "Адрес кошелька"}
-                  value={payoutDetails}
-                  onChange={(e) => setPayoutDetails(e.target.value)}
-                  className="bg-secondary/50 border-border/50"
-                />
-              </div>
+            {/* Telegram */}
+            <div className="space-y-3 mb-6">
+              <label className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Telegram для связи</label>
+              <Input
+                type="text"
+                placeholder="@username"
+                value={telegramHandle}
+                onChange={(e) => setTelegramHandle(e.target.value)}
+                className="bg-secondary/50 border-border/50"
+              />
             </div>
 
-            {/* Submit */}
+            {/* Payout Address */}
+            <div className="space-y-3 mb-8">
+              <label className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Адрес кошелька для получения</label>
+              <Input
+                type="text"
+                placeholder="Адрес кошелька"
+                value={payoutDetails}
+                onChange={(e) => setPayoutDetails(e.target.value)}
+                className="bg-secondary/50 border-border/50"
+              />
+              {receiveCurrency && (
+                <p className="text-xs text-muted-foreground">
+                  Укажите адрес кошелька {receiveCurrency.name}
+                </p>
+              )}
+            </div>
+
+            {/* Submit Button */}
             <Button
-              size="lg"
               onClick={handleSubmit}
-              disabled={createOrderMutation.isPending || !giveAmount || !receiveAmount || !payoutDetails || !telegramHandle || !rateAvailable}
-              className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:shadow-xl hover:shadow-primary/30 active:scale-[0.97]"
+              disabled={createOrderMutation.isPending || !rateAvailable}
+              className="w-full h-12 text-base font-semibold"
             >
               {createOrderMutation.isPending ? (
-                <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Создание заявки...
+                </>
               ) : (
-                <Send className="w-5 h-5 mr-2" />
+                <>
+                  <Send className="w-4 h-4 mr-2" />
+                  Создать заявку
+                </>
               )}
-              Создать заявку
             </Button>
 
-            <p className="text-center text-xs text-muted-foreground mt-3">
+            <p className="text-xs text-muted-foreground text-center mt-4">
               Нажимая "Создать заявку", вы соглашаетесь с правилами обмена
             </p>
           </Card>
-
-          {/* Features */}
-          <div className="grid grid-cols-3 gap-4 mt-10 animate-fade-in-up stagger-3">
-            <div className="text-center p-4">
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mx-auto mb-3">
-                <span className="text-lg">🔒</span>
-              </div>
-              <h3 className="font-semibold text-sm mb-1">Безопасно</h3>
-              <p className="text-xs text-muted-foreground">Ручная проверка каждой транзакции</p>
-            </div>
-            <div className="text-center p-4">
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mx-auto mb-3">
-                <span className="text-lg">⚡</span>
-              </div>
-              <h3 className="font-semibold text-sm mb-1">Быстро</h3>
-              <p className="text-xs text-muted-foreground">Среднее время обмена — 2 минуты</p>
-            </div>
-            <div className="text-center p-4">
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mx-auto mb-3">
-                <span className="text-lg">💬</span>
-              </div>
-              <h3 className="font-semibold text-sm mb-1">Поддержка</h3>
-              <p className="text-xs text-muted-foreground">Связь через Telegram</p>
-            </div>
-          </div>
-
-          {/* Reserves Section */}
-          <div className="mt-12 animate-fade-in-up stagger-4">
-            <h2 className="text-xl font-bold text-center mb-6">Резервы</h2>
-            <Card className="p-5 bg-card/50 border-border/50">
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                <div className="flex items-center gap-2.5 p-3 rounded-lg bg-secondary/30 border border-border/30">
-                  <span className="text-lg">₿</span>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Bitcoin</p>
-                    <p className="text-sm font-semibold text-foreground">6.20 BTC</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2.5 p-3 rounded-lg bg-secondary/30 border border-border/30">
-                  <span className="text-lg">Ξ</span>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Ethereum</p>
-                    <p className="text-sm font-semibold text-foreground">37.20 ETH</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2.5 p-3 rounded-lg bg-secondary/30 border border-border/30">
-                  <span className="text-lg">Ł</span>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Litecoin</p>
-                    <p className="text-sm font-semibold text-foreground">297.60 LTC</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2.5 p-3 rounded-lg bg-secondary/30 border border-border/30">
-                  <span className="text-lg">ɱ</span>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Monero</p>
-                    <p className="text-sm font-semibold text-foreground">210.80 XMR</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2.5 p-3 rounded-lg bg-secondary/30 border border-border/30">
-                  <span className="text-lg">💎</span>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Toncoin</p>
-                    <p className="text-sm font-semibold text-foreground">62 000 TON</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2.5 p-3 rounded-lg bg-secondary/30 border border-border/30">
-                  <span className="text-lg">T</span>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Tron</p>
-                    <p className="text-sm font-semibold text-foreground">1 240 000 TRX</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2.5 p-3 rounded-lg bg-secondary/30 border border-border/30">
-                  <span className="text-lg">₮</span>
-                  <div>
-                    <p className="text-xs text-muted-foreground">USDT ERC20</p>
-                    <p className="text-sm font-semibold text-foreground">372 000 USDT</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2.5 p-3 rounded-lg bg-secondary/30 border border-border/30">
-                  <span className="text-lg">₮</span>
-                  <div>
-                    <p className="text-xs text-muted-foreground">USDT TRC20</p>
-                    <p className="text-sm font-semibold text-foreground">485 000 USDT</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2.5 p-3 rounded-lg bg-secondary/30 border border-border/30">
-                  <span className="text-lg">₮</span>
-                  <div>
-                    <p className="text-xs text-muted-foreground">USDT BEP20</p>
-                    <p className="text-sm font-semibold text-foreground">298 000 USDT</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2.5 p-3 rounded-lg bg-secondary/30 border border-border/30">
-                  <span className="text-lg">💳</span>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Visa/Mastercard</p>
-                    <p className="text-sm font-semibold text-foreground">12 400 000 ₽</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2.5 p-3 rounded-lg bg-secondary/30 border border-border/30">
-                  <span className="text-lg">🏦</span>
-                  <div>
-                    <p className="text-xs text-muted-foreground">T-Bank</p>
-                    <p className="text-sm font-semibold text-foreground">7 440 000 ₽</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2.5 p-3 rounded-lg bg-secondary/30 border border-border/30">
-                  <span className="text-lg">🏦</span>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Sber</p>
-                    <p className="text-sm font-semibold text-foreground">7 440 000 ₽</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2.5 p-3 rounded-lg bg-secondary/30 border border-border/30">
-                  <span className="text-lg">⚡</span>
-                  <div>
-                    <p className="text-xs text-muted-foreground">SBP</p>
-                    <p className="text-sm font-semibold text-foreground">9 920 000 ₽</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2.5 p-3 rounded-lg bg-secondary/30 border border-border/30">
-                  <span className="text-lg">💳</span>
-                  <div>
-                    <p className="text-xs text-muted-foreground">MIR</p>
-                    <p className="text-sm font-semibold text-foreground">4 960 000 ₽</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2.5 p-3 rounded-lg bg-secondary/30 border border-border/30">
-                  <span className="text-lg">💵</span>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Наличные</p>
-                    <p className="text-sm font-semibold text-foreground">4 960 000 ₽</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2.5 p-3 rounded-lg bg-secondary/30 border border-border/30">
-                  <span className="text-lg">₮</span>
-                  <div>
-                    <p className="text-xs text-muted-foreground">USDT SOL</p>
-                    <p className="text-sm font-semibold text-foreground">248 000 USDT</p>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </div>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="border-t border-border/50 py-6">
-        <div className="container text-center text-sm text-muted-foreground">
-          © 2018 EasyCash. Все права защищены.
-        </div>
-      </footer>
     </div>
   );
 }
