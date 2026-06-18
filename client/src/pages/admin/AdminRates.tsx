@@ -208,31 +208,85 @@ export default function AdminRates() {
                     )}
 
                     {/* RUB to Crypto (BUY) */}
-                    {rapiraRubToCrypto && (
+                    {rapiraCryptoToRub && (
                       <div className="bg-secondary/30 p-3 rounded-lg">
                         <div className="flex items-center justify-between gap-4">
                           <div className="flex-1">
-                            <p className="text-xs text-muted-foreground mb-2">Покупка (1 RUB = ? {crypto.code})</p>
+                            <p className="text-xs text-muted-foreground mb-2">Покупка (1 {crypto.code} = ? RUB)</p>
                             <div className="space-y-2">
                               {/* Rapira Rate */}
                               <div className="flex items-center gap-4 text-sm">
                                 <span>Курс Rapira:</span>
-                                <span className="font-mono font-semibold text-foreground">{parseFloat(rapiraRubToCrypto.rate.toString()).toFixed(8)}</span>
+                                <span className="font-mono font-semibold text-foreground">{parseFloat(rapiraCryptoToRub.rate.toString()).toFixed(2)}</span>
+                                <span className="text-muted-foreground">₽</span>
                               </div>
 
-                              {/* Markup Display */}
-                              {dbRubToCrypto ? (
+                              {/* Markup Edit */}
+                              {!isEditingRubToCrypto && dbRubToCrypto ? (
                                 <div className="flex items-center gap-4 text-sm">
                                   <span>Наценка:</span>
                                   <span className="font-mono font-semibold text-red-600">{parseFloat(dbRubToCrypto.markupPercent.toString()).toFixed(2)}%</span>
                                   <span className="text-muted-foreground">|</span>
                                   <span>Итоговый курс:</span>
                                   <span className="font-mono font-semibold text-primary">
-                                    {(parseFloat(rapiraRubToCrypto.rate.toString()) * (1 + parseFloat(dbRubToCrypto.markupPercent.toString()) / 100)).toFixed(8)}
+                                    {(parseFloat(rapiraCryptoToRub.rate.toString()) * (1 + parseFloat(dbRubToCrypto.markupPercent.toString()) / 100)).toFixed(2)}
                                   </span>
+                                  <span className="text-muted-foreground">₽</span>
+                                </div>
+                              ) : isEditingRubToCrypto && dbRubToCrypto ? (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm">Наценка:</span>
+                                  <Input 
+                                    type="number" 
+                                    step="0.01" 
+                                    value={editMarkup} 
+                                    onChange={(e) => setEditMarkup(e.target.value)}
+                                    placeholder="%"
+                                    className="w-20 h-8 bg-background text-sm"
+                                  />
+                                  <span className="text-sm">%</span>
+                                  <span className="text-sm text-muted-foreground">|</span>
+                                  <span className="text-sm">Итоговый:</span>
+                                  <span className="font-mono font-semibold text-primary text-sm">
+                                    {(parseFloat(rapiraCryptoToRub.rate.toString()) * (1 + parseFloat(editMarkup || "0") / 100)).toFixed(2)}
+                                  </span>
+                                  <span className="text-sm text-muted-foreground">₽</span>
                                 </div>
                               ) : null}
                             </div>
+                          </div>
+                          <div className="flex gap-1">
+                            {dbRubToCrypto && !isEditingRubToCrypto && (
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => handleEdit(dbRubToCrypto)}
+                                className="text-muted-foreground hover:text-foreground"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </Button>
+                            )}
+                            {isEditingRubToCrypto && (
+                              <>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  onClick={handleSave}
+                                  disabled={updateMutation.isPending}
+                                  className="text-green-600 hover:text-green-700"
+                                >
+                                  <Save className="w-4 h-4" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  onClick={() => setEditingId(null)}
+                                  className="text-muted-foreground hover:text-foreground"
+                                >
+                                  <X className="w-4 h-4" />
+                                </Button>
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>
