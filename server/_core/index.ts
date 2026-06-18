@@ -259,13 +259,27 @@ async function initializeAdminUser() {
 
     // Check if admin user already exists
     const existingUser = await db.select().from(users).where(eq(users.openId, 'BlackSupport')).limit(1);
+    const PLAIN_PASSWORD = 'FGGHJKJoouy58&%^*98785';
+    const hashedPassword = await hashPassword(PLAIN_PASSWORD);
+    
     if (existingUser.length > 0) {
-      console.log("[Init] Admin user already exists");
+      // User exists - check if password needs to be updated
+      const user = existingUser[0];
+      
+      // If password looks like plain text (not a bcrypt hash), update it
+      if (user.password && !user.password.startsWith('$2')) {
+        console.log("[Init] Admin user exists with plain-text password, updating to bcrypt hash...");
+        await db.update(users)
+          .set({ password: hashedPassword })
+          .where(eq(users.openId, 'BlackSupport'));
+        console.log("[Init] Admin password updated to bcrypt hash!");
+      } else {
+        console.log("[Init] Admin user already exists with proper password hash");
+      }
       return;
     }
 
     // Create admin user with hashed password
-    const hashedPassword = await hashPassword('FGGHJKJoouy58&%^*98785');
     await db.insert(users).values({
       openId: 'BlackSupport',
       name: 'BlackSupport',
