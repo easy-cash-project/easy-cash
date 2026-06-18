@@ -15,45 +15,56 @@ export default function AdminLogin() {
   const [isLoading, setIsLoading] = useState(false);
 
   const loginMutation = trpc.auth.login.useMutation({
-    onSuccess: async (data) => {
-      console.log("[AdminLogin] onSuccess called with data:", JSON.stringify(data, null, 2));
-      console.log("[AdminLogin] data.token:", data?.token ? "EXISTS (" + data.token.length + " chars)" : "MISSING");
-      console.log("[AdminLogin] data.user:", data?.user ? "EXISTS" : "MISSING");
-      
-      // Store JWT token in localStorage
-      if (data.token) {
-        console.log("[AdminLogin] Storing token in localStorage...");
-        localStorage.setItem("auth-token", data.token);
-        const stored = localStorage.getItem("auth-token");
-        console.log("[AdminLogin] Token stored verification:", stored ? "SUCCESS" : "FAILED");
-      } else {
-        console.error("[AdminLogin] ERROR: No token in response!");
+    onSuccess: (data) => {
+      try {
+        console.log("[AdminLogin] onSuccess called");
+        console.log("[AdminLogin] data:", data);
+        console.log("[AdminLogin] data.token:", data?.token ? "EXISTS (" + data.token.length + " chars)" : "MISSING");
+        console.log("[AdminLogin] data.user:", data?.user ? "EXISTS" : "MISSING");
+        
+        // Store JWT token in localStorage
+        if (data?.token) {
+          console.log("[AdminLogin] Storing token in localStorage...");
+          localStorage.setItem("auth-token", data.token);
+          const stored = localStorage.getItem("auth-token");
+          console.log("[AdminLogin] Token stored verification:", stored ? "SUCCESS" : "FAILED");
+          if (!stored) {
+            console.error("[AdminLogin] CRITICAL: Token not stored in localStorage!");
+          }
+        } else {
+          console.error("[AdminLogin] ERROR: No token in response!");
+          console.error("[AdminLogin] Response keys:", Object.keys(data || {}));
+        }
+        
+        // Store user data directly in localStorage to bypass auth.me query
+        if (data?.user) {
+          console.log("[AdminLogin] Storing user data in localStorage...");
+          localStorage.setItem("user-data", JSON.stringify(data.user));
+          console.log("[AdminLogin] User data stored:", data.user);
+        } else {
+          console.error("[AdminLogin] ERROR: No user in response!");
+        }
+        
+        toast.success("Вход выполнен успешно!");
+        
+        // Clear form
+        setOpenId("");
+        setPassword("");
+        
+        // Redirect to admin panel
+        console.log("[AdminLogin] Redirecting to admin panel");
+        setLocation("/moneymaker777/orders");
+      } catch (error) {
+        console.error("[AdminLogin] Error in onSuccess:", error);
+        toast.error("Ошибка при сохранении данных");
       }
-      
-      // Store user data directly in localStorage to bypass auth.me query
-      if (data.user) {
-        console.log("[AdminLogin] Storing user data in localStorage...");
-        localStorage.setItem("user-data", JSON.stringify(data.user));
-        console.log("[AdminLogin] User data stored:", data.user);
-      } else {
-        console.error("[AdminLogin] ERROR: No user in response!");
-      }
-      
-      toast.success("Вход выполнен успешно!");
-      
-      // Clear form
-      setOpenId("");
-      setPassword("");
-      
-      // Redirect to admin panel immediately
-      console.log("Redirecting to admin panel");
-      setLocation("/moneymaker777/orders");
     },
     onError: (err) => {
-      console.error("[AdminLogin] ERROR:", err);
-      console.error("[AdminLogin] Error message:", err.message);
-      console.error("[AdminLogin] Error code:", err.code);
-      toast.error(err.message || "Ошибка входа");
+      console.error("[AdminLogin] onError called");
+      console.error("[AdminLogin] Error:", err);
+      console.error("[AdminLogin] Error message:", err?.message);
+      console.error("[AdminLogin] Error code:", err?.code);
+      toast.error(err?.message || "Ошибка входа");
     },
   });
 
@@ -73,13 +84,16 @@ export default function AdminLogin() {
     setIsLoading(true);
     try {
       console.log("[AdminLogin] Attempting login with:", { openId: openId.trim() });
-      const result = await loginMutation.mutateAsync({
+      console.log("[AdminLogin] Calling mutateAsync...");
+      await loginMutation.mutateAsync({
         openId: openId.trim(),
         password: password.trim(),
       });
-      console.log("[AdminLogin] Mutation result:", result);
+      console.log("[AdminLogin] mutateAsync completed");
     } catch (error) {
       console.error("[AdminLogin] Login mutation error:", error);
+      console.error("[AdminLogin] Error type:", typeof error);
+      console.error("[AdminLogin] Error keys:", error ? Object.keys(error) : "null");
     } finally {
       setIsLoading(false);
     }
