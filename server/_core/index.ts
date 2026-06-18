@@ -123,15 +123,19 @@ async function initializeSeedData() {
         
         if (existing.length === 0) {
           console.log(`[Init] Inserting rate: ${fromCrypto} (${fromId}) -> RUB (${rubId})`);
-          await db.insert(exchangeRates).values({
-            fromCurrencyId: fromId,
-            toCurrencyId: rubId,
-            baseRate: priceRub.toString(),
-            markupPercent: '0',
-            isActive: 1,
-          });
-          console.log(`[Init] ✅ Rate seeded: ${fromCrypto} -> RUB`);
-          ratesCreated++;
+          try {
+            await db.insert(exchangeRates).values({
+              fromCurrencyId: fromId,
+              toCurrencyId: rubId,
+              baseRate: priceRub.toString(),
+              markupPercent: '0',
+              isActive: 1,
+            });
+            console.log(`[Init] ✅ Rate seeded: ${fromCrypto} -> RUB`);
+            ratesCreated++;
+          } catch (insertErr) {
+            console.error(`[Init] ❌ Failed to insert rate ${fromCrypto} -> RUB:`, insertErr);
+          }
         }
 
         // Create rate for RUB -> crypto
