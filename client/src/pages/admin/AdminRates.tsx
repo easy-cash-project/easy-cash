@@ -43,7 +43,8 @@ export default function AdminRates() {
 
   const getRapiraRate = (fromCode: string, toCode: string) => {
     if (!ratesMatrix) return null;
-    return ratesMatrix.rates?.find(r => r.from === fromCode && r.to === toCode);
+    const rates = ratesMatrix.json?.rates || [];
+    return rates.find(r => r.from === fromCode && r.to === toCode);
   };
 
   const getDbRate = (fromCode: string, toCode: string) => {
