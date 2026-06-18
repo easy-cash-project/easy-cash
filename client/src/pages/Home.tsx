@@ -375,8 +375,13 @@ export default function Home() {
                     ) : (
                       <>
                         <div className="text-2xl font-bold text-primary">{receiveAmount || "—"}</div>
-                        <div className="text-xs text-muted-foreground">
-                          Курс: 1 {giveCurrency?.code} ({giveCurrency?.name}) = {rateQuery.data?.rate || rateQuery.data?.ask_price || "—"} {receiveCurrency?.code}
+                        <div className="text-xs text-muted-foreground space-y-1">
+                          <div>
+                            Курс: 1 {giveCurrency?.code} ({giveCurrency?.name}) = {rateQuery.data?.rate || rateQuery.data?.ask_price || "—"} {receiveCurrency?.code}
+                          </div>
+                          <div className="text-green-400">
+                            Комиссия: 0.2%
+                          </div>
                         </div>
                       </>
                     )}
