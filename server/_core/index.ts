@@ -66,7 +66,7 @@ async function initializeSeedData() {
           const result = await db.insert(currencies).values(curr).returning();
           if (result && result.length > 0) {
             currencyMap[curr.code] = result[0].id;
-            console.log(`[Init] ✅ Currency seeded: ${curr.code}`);
+            console.log(`[Init] ✅ Currency seeded: ${curr.code} (ID: ${result[0].id})`);
           }
         }
       } catch (e) {
@@ -127,8 +127,8 @@ async function initializeSeedData() {
             await db.insert(exchangeRates).values({
               fromCurrencyId: fromId,
               toCurrencyId: rubId,
-              baseRate: priceRub.toString(),
-              markupPercent: '0',
+              baseRate: priceRub,
+              markupPercent: 0,
               isActive: 1,
             });
             console.log(`[Init] ✅ Rate seeded: ${fromCrypto} -> RUB`);
@@ -144,12 +144,12 @@ async function initializeSeedData() {
           .limit(1);
         
         if (rubToExisting.length === 0) {
-          const rubToCryptoRate = (1 / priceRub).toFixed(8);
+          const rubToCryptoRate = 1 / priceRub;
           await db.insert(exchangeRates).values({
             fromCurrencyId: rubId,
             toCurrencyId: fromId,
             baseRate: rubToCryptoRate,
-            markupPercent: '0',
+            markupPercent: 0,
             isActive: 1,
           });
           console.log(`[Init] ✅ Rate seeded: RUB -> ${fromCrypto}`);
@@ -171,12 +171,12 @@ async function initializeSeedData() {
             .limit(1);
 
           if (cryptoExisting.length === 0) {
-            const cryptoToCryptoRate = (priceRub / toPriceRub).toFixed(8);
+            const cryptoToCryptoRate = priceRub / toPriceRub;
             await db.insert(exchangeRates).values({
               fromCurrencyId: fromId,
               toCurrencyId: toId,
               baseRate: cryptoToCryptoRate,
-              markupPercent: '0',
+              markupPercent: 0,
               isActive: 1,
             });
             ratesCreated++;
