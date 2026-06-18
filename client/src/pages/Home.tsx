@@ -129,12 +129,12 @@ export default function Home() {
   const giveCurrency = currencies?.find(c => c.id === giveCurrencyId);
   const receiveCurrency = currencies?.find(c => c.id === receiveCurrencyId);
   
-  const rateQuery = trpc.rates.getRate.useQuery(
+  const rateQuery = trpc.rates.getForPair.useQuery(
     {
-      from: giveCurrency?.code || "",
-      to: receiveCurrency?.code || "",
+      fromCurrencyId: giveCurrencyId || 0,
+      toCurrencyId: receiveCurrencyId || 0,
     },
-    { enabled: !!giveCurrency && !!receiveCurrency }
+    { enabled: !!giveCurrencyId && !!receiveCurrencyId }
   );
 
   const rateLoading = rateQuery.isLoading;
@@ -189,7 +189,7 @@ export default function Home() {
     setLastEditedField("give");
     if (rateQuery.data && val) {
       const amount = parseFloat(val);
-      const rate = parseFloat(rateQuery.data.rate || rateQuery.data.ask_price || "0");
+      const rate = parseFloat(rateQuery.data.effectiveRate || "0");
       if (!isNaN(amount) && rate > 0) {
         setReceiveAmount((amount * rate).toFixed(2));
       }
@@ -221,7 +221,7 @@ export default function Home() {
       giveAmount,
       receiveCurrencyId,
       receiveAmount,
-      exchangeRate: String(rateQuery.data.rate || rateQuery.data.ask_price || "0"),
+      exchangeRate: String(rateQuery.data.effectiveRate || "0"),
       payoutDetails,
       telegramHandle,
     });
@@ -377,10 +377,7 @@ export default function Home() {
                         <div className="text-2xl font-bold text-primary">{receiveAmount || "—"}</div>
                         <div className="text-xs text-muted-foreground space-y-1">
                           <div>
-                            Курс: 1 {giveCurrency?.code} ({giveCurrency?.name}) = {rateQuery.data?.rate || rateQuery.data?.ask_price || "—"} {receiveCurrency?.code}
-                          </div>
-                          <div className="text-green-400">
-                            Комиссия: 0.2%
+                            Курс: 1 {giveCurrency?.code} ({giveCurrency?.name}) = {rateQuery.data?.baseRate || "—"} {receiveCurrency?.code}
                           </div>
                         </div>
                       </>
