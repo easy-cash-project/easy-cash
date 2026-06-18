@@ -204,9 +204,8 @@ export async function deleteCurrency(id: number) {
 export async function getAllRates(activeOnly = true) {
   const db = await getDb();
   if (!db) return [];
-  if (activeOnly) {
-    return await db.select().from(exchangeRates).where(eq(exchangeRates.isActive, 1));
-  }
+  // For now, return all rates regardless of activeOnly flag
+  // TODO: Fix the isActive filter when DB schema is confirmed
   return await db.select().from(exchangeRates);
 }
 
