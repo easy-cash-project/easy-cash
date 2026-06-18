@@ -169,7 +169,8 @@ export default function Home() {
   // Calculate amounts when rate changes
   useEffect(() => {
     if (!rateQuery.data) return;
-    const rate = parseFloat(rateQuery.data.effectiveRate);
+    const rate = parseFloat(rateQuery.data.rate || rateQuery.data.ask_price || "0");
+    if (rate <= 0) return;
     if (lastEditedField === "give" && giveAmount) {
       const amount = parseFloat(giveAmount);
       if (!isNaN(amount)) {
@@ -177,7 +178,7 @@ export default function Home() {
       }
     } else if (lastEditedField === "receive" && receiveAmount) {
       const amount = parseFloat(receiveAmount);
-      if (!isNaN(amount) && rate > 0) {
+      if (!isNaN(amount)) {
         setGiveAmount((amount / rate).toFixed(8));
       }
     }
@@ -188,8 +189,8 @@ export default function Home() {
     setLastEditedField("give");
     if (rateQuery.data && val) {
       const amount = parseFloat(val);
-      const rate = parseFloat(rateQuery.data.effectiveRate);
-      if (!isNaN(amount)) {
+      const rate = parseFloat(rateQuery.data.rate || rateQuery.data.ask_price || "0");
+      if (!isNaN(amount) && rate > 0) {
         setReceiveAmount((amount * rate).toFixed(2));
       }
     } else {
@@ -220,7 +221,7 @@ export default function Home() {
       giveAmount,
       receiveCurrencyId,
       receiveAmount,
-      exchangeRate: rateQuery.data.effectiveRate,
+      exchangeRate: rateQuery.data.rate || rateQuery.data.ask_price,
       payoutDetails,
       telegramHandle,
     });
@@ -375,7 +376,7 @@ export default function Home() {
                       <>
                         <div className="text-2xl font-bold text-primary">{receiveAmount || "—"}</div>
                         <div className="text-xs text-muted-foreground">
-                          Курс: 1 {giveCurrency?.code} ({giveCurrency?.name}) = {rateQuery.data?.effectiveRate || "—"} {receiveCurrency?.code}
+                          Курс: 1 {giveCurrency?.code} ({giveCurrency?.name}) = {rateQuery.data?.rate || rateQuery.data?.ask_price || "—"} {receiveCurrency?.code}
                         </div>
                       </>
                     )}
