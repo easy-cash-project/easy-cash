@@ -77,7 +77,7 @@ async function startServer() {
   registerOAuthRoutes(app);
   // tRPC API
   app.use(
-    "/api/trpc",
+    "/trpc",
     createExpressMiddleware({
       router: appRouter,
       createContext,
