@@ -136,7 +136,7 @@ export default function Home() {
       if (btc) setGiveCurrencyId(btc.id);
       if (rub) setReceiveCurrencyId(rub.id);
     }
-  }, [currencies, giveCurrencyId]);
+  }, [currencies]);
 
   // Fetch rate for selected pair
   const rateQuery = trpc.rates.getForPair.useQuery(
