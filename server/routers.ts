@@ -318,18 +318,22 @@ export const appRouter = router({
         try {
           const tgConfig = await getTelegramConfig();
           if (tgConfig && tgConfig.botToken && tgConfig.chatId) {
-            const giveCode = giveCurrency?.code || "?";
-            const receiveCode = receiveCurrency?.code || "?";
-            const giveName = giveCurrency?.name || "?";
-            const receiveName = receiveCurrency?.name || "?";
+            const giveCode = (giveCurrency?.code || "?").replace(/_/g, "\_");
+            const receiveCode = (receiveCurrency?.code || "?").replace(/_/g, "\_");
+            const giveName = (giveCurrency?.name || "?").replace(/[_*\[\]()~`>#+\-=|{}.!]/g, (m) => `\\${m}`);
+            const receiveName = (receiveCurrency?.name || "?").replace(/[_*\[\]()~`>#+\-=|{}.!]/g, (m) => `\\${m}`);
+            const telegramHandle = (input.telegramHandle || "?").replace(/[_*\[\]()~`>#+\-=|{}.!]/g, (m) => `\\${m}`);
+            const payoutDetails = (input.payoutDetails || "?").replace(/[_*\[\]()~`>#+\-=|{}.!]/g, (m) => `\\${m}`);
+            const depositAddress = (depositAddr.address || "?").replace(/[_*\[\]()~`>#+\-=|{}.!]/g, (m) => `\\${m}`);
+            
             const message = [
               `🔔 *Новая заявка #${orderId}*`,
               ``,
-              `👤 Telegram: ${input.telegramHandle}`,
-              `🔄 Направление: ${giveName} (${giveCode}) → ${receiveName} (${receiveCode})`,
+              `👤 Telegram: ${telegramHandle}`,
+              `🔄 Направление: ${giveName} \\(${giveCode}\\) → ${receiveName} \\(${receiveCode}\\)`,
               `💰 Сумма: ${input.giveAmount} ${giveCode} → ${input.receiveAmount} ${receiveCode}`,
-              `📍 Реквизиты для выплаты: \`${input.payoutDetails}\``,
-              `📥 Адрес депозита: \`${depositAddr.address}\``,
+              `📍 Реквизиты для выплаты: ${payoutDetails}`,
+              `📥 Адрес депозита: ${depositAddress}`,
             ].join("\n");
             const url = `https://api.telegram.org/bot${tgConfig.botToken}/sendMessage`;
             const response = await fetch(url, {
@@ -338,7 +342,7 @@ export const appRouter = router({
               body: JSON.stringify({
                 chat_id: tgConfig.chatId,
                 text: message,
-                parse_mode: "Markdown",
+                parse_mode: "MarkdownV2",
               }),
             });
             const result = await response.json() as { ok: boolean; description?: string };

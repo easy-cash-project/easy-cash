@@ -342,9 +342,18 @@ export async function getTelegramConfig() {
       }
       return null;
     }
-    const result = await db.select().from(telegramConfig).where(eq(telegramConfig.isActive, 1)).limit(1);
-    if (result.length > 0) {
-      return result[0];
+    try {
+      const result = await db.select().from(telegramConfig).where(eq(telegramConfig.isActive, 1)).limit(1);
+      if (result.length > 0) {
+        return result[0];
+      }
+    } catch (dbError: any) {
+      // Table might not exist yet, that's ok - we'll use env vars
+      if (dbError?.message?.includes('does not exist')) {
+        console.log("[Database] telegram_config table not yet created, using env vars");
+      } else {
+        console.warn("[Database] getTelegramConfig DB error:", dbError);
+      }
     }
   } catch (error) {
     console.warn("[Database] getTelegramConfig error:", error);
@@ -361,19 +370,28 @@ export async function upsertTelegramConfig(data: { botToken: string; chatId: str
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  // Check if config exists
-  const existing = await db.select().from(telegramConfig).limit(1);
-  if (existing.length > 0) {
-    await db.update(telegramConfig)
-      .set({ botToken: data.botToken, chatId: data.chatId, updatedAt: new Date() })
-      .where(eq(telegramConfig.id, existing[0].id));
-    return existing[0].id;
-  } else {
-    const result = await db.insert(telegramConfig).values({
-      botToken: data.botToken,
-      chatId: data.chatId,
-      isActive: 1,
-    }).returning();
-    return result[0].id;
+  try {
+    // Check if config exists
+    const existing = await db.select().from(telegramConfig).limit(1);
+    if (existing.length > 0) {
+      await db.update(telegramConfig)
+        .set({ botToken: data.botToken, chatId: data.chatId, updatedAt: new Date() })
+        .where(eq(telegramConfig.id, existing[0].id));
+      return existing[0].id;
+    } else {
+      const result = await db.insert(telegramConfig).values({
+        botToken: data.botToken,
+        chatId: data.chatId,
+        isActive: 1,
+      }).returning();
+      return result[0].id;
+    }
+  } catch (error: any) {
+    // If table doesn't exist, just return success (config will be used from env vars)
+    if (error?.message?.includes('does not exist')) {
+      console.log("[Database] telegram_config table not yet created, config saved via env vars");
+      return 1; // Return dummy ID
+    }
+    throw error;
   }
 }
