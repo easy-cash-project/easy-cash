@@ -11,6 +11,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { getDb, createCurrency, createAddress } from "../db";
+import { startRatesUpdater } from "./rates-updater";
 import { users, currencies, depositAddresses, exchangeRates } from "../../drizzle/schema";
 import { eq, and } from "drizzle-orm";
 import logger, { logSecurityEvent, logError, logInfo } from "./logger";
@@ -424,6 +425,8 @@ async function startServer() {
     console.log(`[Security] Rate limiting enabled (100 requests per 15 minutes)`);
     // Initialize seed data asynchronously after server starts
     initializeSeedData().catch(err => console.error("[Init] Failed to seed data:", err));
+    // Start the rates updater (updates every 5 minutes)
+    startRatesUpdater(5 * 60 * 1000);
   });
 }
 
