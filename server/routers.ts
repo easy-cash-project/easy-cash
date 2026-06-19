@@ -398,11 +398,27 @@ export const appRouter = router({
         maxAmount: z.string().nullable().optional(),
       }))
       .mutation(async ({ input }) => {
+        // Auto-set commission based on currency pair
+        let defaultMarkup = input.markupPercent || "0";
+        
+        // Get the currencies to check if one is RUB
+        const fromCurrency = await getCurrencyById(input.fromCurrencyId);
+        const toCurrency = await getCurrencyById(input.toCurrencyId);
+        
+        // If one of the currencies is RUB, set commission to 20%
+        if ((fromCurrency?.code === 'RUB' || toCurrency?.code === 'RUB') && !input.markupPercent) {
+          defaultMarkup = "20";
+        }
+        // If both are crypto, set commission to 3%
+        else if (fromCurrency?.type === 'crypto' && toCurrency?.type === 'crypto' && !input.markupPercent) {
+          defaultMarkup = "3";
+        }
+        
         const id = await createRate({
           fromCurrencyId: input.fromCurrencyId,
           toCurrencyId: input.toCurrencyId,
           rate: input.rate,
-          markupPercent: input.markupPercent || "0",
+          markupPercent: defaultMarkup,
           minAmount: input.minAmount ?? null,
           maxAmount: input.maxAmount ?? null,
         });
