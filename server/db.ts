@@ -249,7 +249,20 @@ export async function createRate(data: InsertExchangeRate) {
 export async function updateRate(id: number, data: Partial<InsertExchangeRate>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.update(exchangeRates).set(data).where(eq(exchangeRates.id, id));
+  
+  // Convert string values to proper types
+  const processedData = { ...data };
+  if (data.markupPercent !== undefined && typeof data.markupPercent === 'string') {
+    processedData.markupPercent = parseFloat(data.markupPercent);
+  }
+  if (data.minAmount !== undefined && typeof data.minAmount === 'string') {
+    processedData.minAmount = parseFloat(data.minAmount);
+  }
+  if (data.maxAmount !== undefined && typeof data.maxAmount === 'string') {
+    processedData.maxAmount = parseFloat(data.maxAmount);
+  }
+  
+  await db.update(exchangeRates).set(processedData).where(eq(exchangeRates.id, id));
 }
 
 export async function deleteRate(id: number) {
