@@ -46,17 +46,17 @@ async function initializeSeedData() {
 
     // Seed currencies using Drizzle ORM
     const currenciesToSeed = [
+      { code: 'USDT_TRC20', name: 'USDT (Tron)', type: 'crypto' as const, network: 'TRC20', symbol: '₮', isActive: 1 },
+      { code: 'USDT_BEP20', name: 'USDT (BSC)', type: 'crypto' as const, network: 'BEP20', symbol: '₮', isActive: 1 },
+      { code: 'USDT_SOL', name: 'USDT (Solana)', type: 'crypto' as const, network: 'SOL', symbol: '₮', isActive: 1 },
+      { code: 'USDT_TON', name: 'USDT (Ton)', type: 'crypto' as const, network: 'TON', symbol: '₮', isActive: 1 },
+      { code: 'USDT_ERC20', name: 'USDT (Ethereum)', type: 'crypto' as const, network: 'ERC20', symbol: '₮', isActive: 1 },
       { code: 'BTC', name: 'Bitcoin', type: 'crypto' as const, network: null, symbol: '₿', isActive: 1 },
       { code: 'ETH', name: 'Ethereum', type: 'crypto' as const, network: null, symbol: 'Ξ', isActive: 1 },
       { code: 'LTC', name: 'Litecoin', type: 'crypto' as const, network: null, symbol: 'Ł', isActive: 1 },
-      { code: 'XMR', name: 'Monero', type: 'crypto' as const, network: null, symbol: 'ɱ', isActive: 1 },
       { code: 'TON', name: 'Toncoin', type: 'crypto' as const, network: null, symbol: '💎', isActive: 1 },
       { code: 'TRX', name: 'Tron', type: 'crypto' as const, network: null, symbol: 'T', isActive: 1 },
-      { code: 'USDT', name: 'Tether ERC20', type: 'crypto' as const, network: 'ERC20', symbol: '₮', isActive: 1 },
-      { code: 'USDT', name: 'Tether TRC20', type: 'crypto' as const, network: 'TRC20', symbol: '₮', isActive: 1 },
-      { code: 'USDT', name: 'Tether BEP20', type: 'crypto' as const, network: 'BEP20', symbol: '₮', isActive: 1 },
-      { code: 'USDT', name: 'Tether SOL', type: 'crypto' as const, network: 'SOL', symbol: '₮', isActive: 1 },
-      { code: 'USDT', name: 'Tether TON', type: 'crypto' as const, network: 'TON', symbol: '₮', isActive: 1 },
+      { code: 'XMR', name: 'Monero', type: 'crypto' as const, network: null, symbol: 'ɱ', isActive: 1 },
       { code: 'RUB', name: 'Russian Ruble', type: 'fiat' as const, network: null, symbol: '₽', isActive: 1 },
     ];
 
@@ -90,8 +90,13 @@ async function initializeSeedData() {
     console.log(`[Init] Currency map refreshed with ${Object.keys(currencyMap).length} currencies`);
 
     // Seed exchange rates using Drizzle ORM
-    const cryptoCurrencies = ['BTC', 'ETH', 'LTC', 'TON', 'XMR', 'TRX'];
+    const cryptoCurrencies = ['USDT_TRC20', 'USDT_BEP20', 'USDT_SOL', 'USDT_TON', 'USDT_ERC20', 'BTC', 'ETH', 'LTC', 'TON', 'XMR', 'TRX'];
     const mockRates: Record<string, number> = {
+      'USDT_TRC20': 75,
+      'USDT_BEP20': 75,
+      'USDT_SOL': 75,
+      'USDT_TON': 75,
+      'USDT_ERC20': 75,
       'BTC': 9250000,
       'ETH': 350000,
       'LTC': 12500,
@@ -206,7 +211,7 @@ async function initializeSeedData() {
       { currencyCode: 'USDT_BEP20', address: '0x8D73D376410Eec9b5DAaA9612E69754432372191', label: 'USDT BEP20 Wallet' },
       { currencyCode: 'USDT_SOL', address: '7Sujm4R4nC8W2z2eGx3T83jyFbfzPqBPu7BqjGYao5BY', label: 'USDT SOL Wallet' },
       { currencyCode: 'USDT_TON', address: 'UQBraQDC2JTumcZMzSX0ZTtTSwOZt9INkhMJprIj4Z_ooh9i', label: 'USDT TON Wallet' },
-      { currencyCode: 'USDT', address: '0x8D73D376410Eec9b5DAaA9612E69754432372191', label: 'USDT ERC20 Wallet', network: 'ERC20' },
+      { currencyCode: 'USDT_ERC20', address: '0x8D73D376410Eec9b5DAaA9612E69754432372191', label: 'USDT ERC20 Wallet' },
       { currencyCode: 'BTC', address: 'bc1qlge7n68ugkqap5u699a64j3veqn2kjwyp6thgj', label: 'Bitcoin Wallet' },
       { currencyCode: 'ETH', address: '0x8D73D376410Eec9b5DAaA9612E69754432372191', label: 'Ethereum Wallet' },
       { currencyCode: 'LTC', address: 'ltc1qsrtwj6v3xn5nkrkrn2cm2auskxavzc06pelvxc', label: 'Litecoin Wallet' },
@@ -217,16 +222,7 @@ async function initializeSeedData() {
 
     for (const addr of addressesToSeed) {
       try {
-        let currencyId: number | undefined;
-        
-        // Handle USDT with network field
-        if (addr.currencyCode === 'USDT' && 'network' in addr && addr.network) {
-          const key = `USDT_${addr.network}`;
-          currencyId = currencyMap[key];
-        } else {
-          currencyId = currencyMap[addr.currencyCode];
-        }
-        
+        const currencyId = currencyMap[addr.currencyCode];
         if (!currencyId) {
           console.log(`[Init] Currency not found for address: ${addr.currencyCode}`);
           continue;
