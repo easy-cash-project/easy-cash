@@ -21,5 +21,4 @@ INSERT INTO "currencies" ("code", "name", "type", "network", "symbol", "category
 ('CASH', 'Наличные', 'fiat', NULL, '💵', 'Cash', 1, 17, now(), now()),
 ('TBANK_CASHIN', 'T-Bank cash-in', 'fiat', NULL, '🏧', 'Cash', 1, 18, now(), now()),
 ('TBANK_QR', 'T-Bank QR', 'fiat', NULL, '📱', 'ATM', 1, 19, now(), now()),
-('SBER_QR', 'Sber QR', 'fiat', NULL, '📱', 'ATM', 1, 20, now(), now())
-ON CONFLICT DO NOTHING;
+('SBER_QR', 'Sber QR', 'fiat', NULL, '📱', 'ATM', 1, 20, now(), now());
