@@ -80,7 +80,6 @@ async function fetchCoinGeckoPrices(): Promise<Map<string, { usd: number; change
       'ethereum',
       'litecoin',
       'tether',
-      'ton',
       'monero',
     ];
 
@@ -106,7 +105,6 @@ async function fetchCoinGeckoPrices(): Promise<Map<string, { usd: number; change
       ethereum: 'ETH',
       litecoin: 'LTC',
       tether: 'USDT',
-      ton: 'TON',
       monero: 'XMR',
     };
 
@@ -128,11 +126,47 @@ async function fetchCoinGeckoPrices(): Promise<Map<string, { usd: number; change
 }
 
 /**
+ * Fetch TON price from OKX API
+ */
+async function fetchOKXTonPrice(): Promise<number | null> {
+  try {
+    const response = await fetch(
+      'https://www.okx.com/api/v5/market/ticker?instId=TON-USDT',
+      {
+        headers: {
+          'Accept': 'application/json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`OKX API error: ${response.status}`);
+    }
+
+    const data: any = await response.json();
+    
+    if (data.code === '0' && data.data && data.data.length > 0) {
+      const lastPrice = parseFloat(data.data[0].last);
+      if (lastPrice > 0) {
+        console.log('[Init] TON price from OKX:', lastPrice, 'USDT');
+        return lastPrice;
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error fetching OKX TON price:', error);
+    return null;
+  }
+}
+
+/**
  * Build complete rates matrix
  */
 export async function buildRatesMatrix(): Promise<RatesMatrixResponse> {
   const rapiraRates = await fetchRapiraRates();
   const coinGeckoPrices = await fetchCoinGeckoPrices();
+  const okxTonPrice = await fetchOKXTonPrice();
 
   const rates: ExchangeRate[] = [];
 
@@ -159,12 +193,17 @@ export async function buildRatesMatrix(): Promise<RatesMatrixResponse> {
     }
   });
 
-  // Other cryptos - use CoinGecko with Rapira fallback
+  // Other cryptos - use CoinGecko with Rapira/OKX fallback
   const cryptoSymbols = ['BTC', 'ETH', 'LTC', 'TON', 'TRX', 'XMR'];
   cryptoSymbols.forEach((symbol) => {
     let price = coinGeckoPrices.get(symbol)?.usd;
     
-    // Fallback to Rapira API for TON and TRX if CoinGecko fails
+    // Special handling for TON: use OKX API
+    if (symbol === 'TON' && okxTonPrice) {
+      price = okxTonPrice;
+    }
+    
+    // Fallback to Rapira API for TON and TRX if other sources fail
     if (!price && (symbol === 'TON' || symbol === 'TRX')) {
       const rapiraSymbol = symbol === 'TON' ? 'TON/USDT' : 'TRX/USDT';
       const rapiraData = rapiraRates.get(rapiraSymbol);
@@ -240,7 +279,7 @@ export async function buildRatesMatrix(): Promise<RatesMatrixResponse> {
   return {
     rates,
     timestamp: Date.now(),
-    source: 'Rapira + CoinGecko',
+    source: 'Rapira + CoinGecko + OKX',
     total_pairs: rates.length,
   };
 }
