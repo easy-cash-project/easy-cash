@@ -50,6 +50,7 @@ export async function updateExchangeRates(): Promise<void> {
 
     // Update rates in database
     let updatedCount = 0;
+    let createdCount = 0;
     let skippedCount = 0;
 
     for (const rate of ratesMatrix.rates) {
@@ -64,34 +65,46 @@ export async function updateExchangeRates(): Promise<void> {
       try {
         // Check if rate exists
         const existing = await db.query(`
-          SELECT id FROM exchange_rates 
+          SELECT id, "markupPercent", "minAmount", "maxAmount" FROM exchange_rates 
           WHERE "fromCurrencyId" = $1 AND "toCurrencyId" = $2
         `, [fromCurrencyId, toCurrencyId]);
 
         if (existing.length > 0) {
-          // Update existing rate
+          // Update existing rate - preserve markup, min/max
+          const existingRate = existing[0];
           await db.query(`
             UPDATE exchange_rates 
             SET "baseRate" = $1, "updatedAt" = NOW()
             WHERE "fromCurrencyId" = $2 AND "toCurrencyId" = $3
           `, [rate.rate.toString(), fromCurrencyId, toCurrencyId]);
+          updatedCount++;
         } else {
-          // Insert new rate
+          // Insert new rate with default markup based on currency pair
+          let defaultMarkup = '0';
+          const fromCode = rate.from;
+          const toCode = rate.to;
+          
+          // 20% for RUB pairs, 3% for crypto pairs
+          if (fromCode === 'RUB' || toCode === 'RUB') {
+            defaultMarkup = '20';
+          } else {
+            defaultMarkup = '3';
+          }
+          
           await db.query(`
             INSERT INTO exchange_rates 
             ("fromCurrencyId", "toCurrencyId", "baseRate", "markupPercent", "isActive", "createdAt", "updatedAt")
             VALUES ($1, $2, $3, $4, 1, NOW(), NOW())
-          `, [fromCurrencyId, toCurrencyId, rate.rate.toString(), '0']);
+          `, [fromCurrencyId, toCurrencyId, rate.rate.toString(), defaultMarkup]);
+          createdCount++;
         }
-
-        updatedCount++;
       } catch (error) {
         console.error(`[RatesUpdater] Error updating rate ${rate.from}/${rate.to}:`, error);
       }
     }
 
     const duration = Date.now() - startTime;
-    console.log(`[RatesUpdater] Update completed in ${duration}ms: ${updatedCount} updated, ${skippedCount} skipped`);
+    console.log(`[RatesUpdater] Update completed in ${duration}ms: ${updatedCount} updated, ${createdCount} created, ${skippedCount} skipped`);
   } catch (error) {
     console.error('[RatesUpdater] Error during update:', error);
   } finally {
