@@ -534,18 +534,24 @@ export const appRouter = router({
         status: z.enum(["active", "inactive"]).optional(),
       }))
       .mutation(async ({ input }) => {
-        if (!input.openId) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "OpenID is required",
-          });
-        }
-        const user = await getUserByOpenId(input.openId);
+        // Get user by ID from database
+        const allUsers = await getAllUsers();
+        const user = allUsers.find(u => u.id === input.id);
         if (!user) {
           throw new TRPCError({
             code: "NOT_FOUND",
             message: "User not found",
           });
+        }
+        // If openId is provided and different, validate it's unique
+        if (input.openId && input.openId !== user.openId) {
+          const existingUser = await getUserByOpenId(input.openId);
+          if (existingUser) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "OpenID already in use",
+            });
+          }
         }
         const updates: Record<string, any> = {};
         if (input.name !== undefined) updates.name = input.name;
@@ -556,8 +562,11 @@ export const appRouter = router({
         }
         if (input.role) updates.role = input.role;
         if (input.status) updates.status = input.status;
+        if (input.openId && input.openId !== user.openId) updates.openId = input.openId;
         
-        const result = await updateUser(user.openId, updates);
+        // Use the current or new openId for the update
+        const openIdToUse = input.openId || user.openId;
+        const result = await updateUser(openIdToUse, updates);
         return result;
       }),
     delete: adminProcedure
