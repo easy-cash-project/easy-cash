@@ -28,10 +28,12 @@ const SUPPORTED_CRYPTOS = [
   'USDT_BEP20',
   'USDT_SOL',
   'USDT_TON',
+  'USDT_ERC20',
   'BTC',
   'ETH',
   'LTC',
   'TON',
+  'TRX',
   'XMR',
 ];
 
@@ -158,17 +160,18 @@ export async function buildRatesMatrix(): Promise<RatesMatrixResponse> {
   });
 
   // Other cryptos - use CoinGecko with Rapira fallback
-  const cryptoSymbols = ['BTC', 'ETH', 'LTC', 'TON', 'XMR'];
+  const cryptoSymbols = ['BTC', 'ETH', 'LTC', 'TON', 'TRX', 'XMR'];
   cryptoSymbols.forEach((symbol) => {
     let price = coinGeckoPrices.get(symbol)?.usd;
     
-    // Fallback to Rapira API for TON if CoinGecko fails
-    if (!price && symbol === 'TON') {
-      const tonRapira = rapiraRates.get('TON/USDT');
-      if (tonRapira) {
-        const tonPrice = tonRapira.askPrice || tonRapira.close || 0;
-        if (tonPrice > 0) {
-          price = tonPrice; // Already in USDT
+    // Fallback to Rapira API for TON and TRX if CoinGecko fails
+    if (!price && (symbol === 'TON' || symbol === 'TRX')) {
+      const rapiraSymbol = symbol === 'TON' ? 'TON/USDT' : 'TRX/USDT';
+      const rapiraData = rapiraRates.get(rapiraSymbol);
+      if (rapiraData) {
+        const cryptoPrice = rapiraData.askPrice || rapiraData.close || 0;
+        if (cryptoPrice > 0) {
+          price = cryptoPrice; // Already in USDT
         }
       }
     }
