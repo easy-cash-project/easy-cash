@@ -13,10 +13,12 @@ const SUPPORTED_CRYPTOS = [
   { code: 'USDT_BEP20', name: 'USDT (BSC)' },
   { code: 'USDT_SOL', name: 'USDT (Solana)' },
   { code: 'USDT_TON', name: 'USDT (Ton)' },
+  { code: 'USDT_ERC20', name: 'USDT (Ethereum)' },
   { code: 'BTC', name: 'Bitcoin' },
   { code: 'ETH', name: 'Ethereum' },
   { code: 'LTC', name: 'Litecoin' },
   { code: 'TON', name: 'Ton' },
+  { code: 'TRX', name: 'Tron' },
   { code: 'XMR', name: 'Monero' },
 ];
 
