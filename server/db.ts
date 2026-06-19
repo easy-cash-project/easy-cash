@@ -200,8 +200,8 @@ export async function getCurrencyById(id: number) {
 export async function createCurrency(data: InsertCurrency) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const result = await db.insert(currencies).values(data);
-  return result.insertId;
+  const result = await db.insert(currencies).values(data).returning({ id: currencies.id });
+  return result[0]?.id || 0;
 }
 
 export async function updateCurrency(id: number, data: Partial<InsertCurrency>) {
@@ -242,8 +242,8 @@ export async function getRateForPair(fromCurrencyId: number, toCurrencyId: numbe
 export async function createRate(data: InsertExchangeRate) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const result = await db.insert(exchangeRates).values(data);
-  return result.insertId;
+  const result = await db.insert(exchangeRates).values(data).returning({ id: exchangeRates.id });
+  return result[0]?.id || 0;
 }
 
 export async function updateRate(id: number, data: Partial<InsertExchangeRate>) {
@@ -279,8 +279,8 @@ export async function getAllAddresses() {
 export async function createAddress(data: InsertDepositAddress) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const result = await db.insert(depositAddresses).values(data);
-  return result.insertId;
+  const result = await db.insert(depositAddresses).values(data).returning({ id: depositAddresses.id });
+  return result[0]?.id || 0;
 }
 
 export async function updateAddress(id: number, data: Partial<InsertDepositAddress>) {
@@ -313,8 +313,8 @@ export async function getOrderByPublicId(orderId: string) {
 export async function createOrder(data: InsertOrder) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const result = await db.insert(orders).values(data);
-  return result.insertId;
+  const result = await db.insert(orders).values(data).returning({ id: orders.id });
+  return result[0]?.id || 0;
 }
 
 export async function updateOrderStatus(id: number, status: string, adminNote?: string) {
