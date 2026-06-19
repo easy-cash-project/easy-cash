@@ -2,11 +2,12 @@ import { ReactNode, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
-import { ArrowLeftRight, ClipboardList, DollarSign, Wallet, Coins, Users, Loader2, Menu, X } from "lucide-react";
+import { ArrowLeftRight, ClipboardList, DollarSign, Wallet, Coins, Users, Loader2, Menu, X, TrendingUp } from "lucide-react";
 
 const navItems = [
   { href: "/moneymaker777/orders", label: "Заявки", icon: ClipboardList },
   { href: "/moneymaker777/rates", label: "Курсы", icon: DollarSign },
+  { href: "/moneymaker777/rub-commissions", label: "Покупка/Продажа РУБ", icon: TrendingUp },
   { href: "/moneymaker777/addresses", label: "Адреса", icon: Wallet },
   { href: "/moneymaker777/currencies", label: "Валюты", icon: Coins },
   { href: "/moneymaker777/users", label: "Пользователи", icon: Users },

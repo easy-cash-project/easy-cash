@@ -14,6 +14,7 @@ import AdminRates from "./pages/admin/AdminRates";
 import AdminAddresses from "./pages/admin/AdminAddresses";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminCurrencies from "./pages/AdminCurrencies";
+import AdminRubCommissions from "./pages/admin/AdminRubCommissions";
 
 function Router() {
   return (
@@ -27,6 +28,7 @@ function Router() {
       <Route path={"/moneymaker777"} component={AdminOrders} />
       <Route path={"/moneymaker777/orders"} component={AdminOrders} />
       <Route path={"/moneymaker777/rates"} component={AdminRates} />
+      <Route path={"/moneymaker777/rub-commissions"} component={AdminRubCommissions} />
       <Route path={"/moneymaker777/addresses"} component={AdminAddresses} />
       <Route path={"/moneymaker777/currencies"} component={AdminCurrencies} />
       <Route path={"/moneymaker777/users"} component={AdminUsers} />
