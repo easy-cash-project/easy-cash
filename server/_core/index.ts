@@ -206,10 +206,12 @@ async function initializeSeedData() {
       { currencyCode: 'USDT_BEP20', address: '0x8D73D376410Eec9b5DAaA9612E69754432372191', label: 'USDT BEP20 Wallet' },
       { currencyCode: 'USDT_SOL', address: '7Sujm4R4nC8W2z2eGx3T83jyFbfzPqBPu7BqjGYao5BY', label: 'USDT SOL Wallet' },
       { currencyCode: 'USDT_TON', address: 'UQBraQDC2JTumcZMzSX0ZTtTSwOZt9INkhMJprIj4Z_ooh9i', label: 'USDT TON Wallet' },
+      { currencyCode: 'USDT_ERC20', address: '0x8D73D376410Eec9b5DAaA9612E69754432372191', label: 'USDT ERC20 Wallet' },
       { currencyCode: 'BTC', address: 'bc1qlge7n68ugkqap5u699a64j3veqn2kjwyp6thgj', label: 'Bitcoin Wallet' },
       { currencyCode: 'ETH', address: '0x8D73D376410Eec9b5DAaA9612E69754432372191', label: 'Ethereum Wallet' },
       { currencyCode: 'LTC', address: 'ltc1qsrtwj6v3xn5nkrkrn2cm2auskxavzc06pelvxc', label: 'Litecoin Wallet' },
       { currencyCode: 'TON', address: 'UQBraQDC2JTumcZMzSX0ZTtTSwOZt9INkhMJprIj4Z_ooh9i', label: 'Toncoin Wallet' },
+      { currencyCode: 'TRX', address: 'TWc1QzHxa5JcdbBCNmem3Ab7T6GyRUwexK', label: 'Tron Wallet' },
       { currencyCode: 'XMR', address: '7Sujm4R4nC8W2z2eGx3T83jyFbfzPqBPu7BqjGYao5BY', label: 'Monero Wallet' },
     ];
 
