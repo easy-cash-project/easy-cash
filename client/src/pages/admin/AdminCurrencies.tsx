@@ -128,7 +128,7 @@ export default function AdminCurrencies() {
             </div>
             <div className="flex gap-2">
               <Button onClick={handleCreate} disabled={createMutation.isPending} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Создать"}
+                {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Добавить"}
               </Button>
               <Button variant="outline" onClick={resetForm}>Отмена</Button>
             </div>
