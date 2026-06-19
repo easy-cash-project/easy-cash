@@ -27,6 +27,10 @@ export default function AdminRubCommissions() {
   const [editingCode, setEditingCode] = useState<string | null>(null);
   const [editSellMarkup, setEditSellMarkup] = useState<string>("");
   const [editBuyMarkup, setEditBuyMarkup] = useState<string>("");
+  const [editSellMinAmount, setEditSellMinAmount] = useState<string>("");
+  const [editSellMaxAmount, setEditSellMaxAmount] = useState<string>("");
+  const [editBuyMinAmount, setEditBuyMinAmount] = useState<string>("");
+  const [editBuyMaxAmount, setEditBuyMaxAmount] = useState<string>("");
 
   const updateMutation = trpc.adminRates.update.useMutation({
     onSuccess: () => {
@@ -60,6 +64,10 @@ export default function AdminRubCommissions() {
       setEditingCode(cryptoCode);
       setEditSellMarkup(sellRate.markupPercent.toString());
       setEditBuyMarkup(buyRate.markupPercent.toString());
+      setEditSellMinAmount(sellRate.minAmount?.toString() || "");
+      setEditSellMaxAmount(sellRate.maxAmount?.toString() || "");
+      setEditBuyMinAmount(buyRate.minAmount?.toString() || "");
+      setEditBuyMaxAmount(buyRate.maxAmount?.toString() || "");
     }
   };
 
@@ -67,6 +75,8 @@ export default function AdminRubCommissions() {
     updateMutation.mutate({
       id: sellRateId,
       markupPercent: editSellMarkup,
+      minAmount: editSellMinAmount || null,
+      maxAmount: editSellMaxAmount || null,
     });
   };
 
@@ -74,6 +84,8 @@ export default function AdminRubCommissions() {
     updateMutation.mutate({
       id: buyRateId,
       markupPercent: editBuyMarkup,
+      minAmount: editBuyMinAmount || null,
+      maxAmount: editBuyMaxAmount || null,
     });
   };
 
@@ -130,24 +142,55 @@ export default function AdminRubCommissions() {
                         <div className="flex-1">
                           <p className="text-xs text-muted-foreground mb-2">Продажа (1 {crypto.code} = ? RUB)</p>
                           {!isEditing ? (
-                            <div className="flex items-center gap-4 text-sm">
-                              <span>Комиссия:</span>
-                              <span className="font-mono font-semibold text-green-600">
-                                {parseFloat(sellRate.markupPercent.toString()).toFixed(2)}%
-                              </span>
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-4 text-sm">
+                                <span>Комиссия:</span>
+                                <span className="font-mono font-semibold text-green-600">
+                                  {parseFloat(sellRate.markupPercent.toString()).toFixed(2)}%
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-4 text-sm">
+                                <span>Лимиты:</span>
+                                <span className="font-mono">
+                                  {sellRate.minAmount ? parseFloat(sellRate.minAmount.toString()).toFixed(0) : '—'} - {sellRate.maxAmount ? parseFloat(sellRate.maxAmount.toString()).toFixed(0) : '—'} RUB
+                                </span>
+                              </div>
                             </div>
                           ) : (
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm">Комиссия:</span>
-                              <Input 
-                                type="number" 
-                                step="0.01" 
-                                value={editSellMarkup} 
-                                onChange={(e) => setEditSellMarkup(e.target.value)}
-                                placeholder="%"
-                                className="w-20 h-8 bg-background text-sm"
-                              />
-                              <span className="text-sm">%</span>
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm">Комиссия:</span>
+                                <Input 
+                                  type="number" 
+                                  step="0.01" 
+                                  value={editSellMarkup} 
+                                  onChange={(e) => setEditSellMarkup(e.target.value)}
+                                  placeholder="%"
+                                  className="w-20 h-8 bg-background text-sm"
+                                />
+                                <span className="text-sm">%</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm">Мин:</span>
+                                <Input 
+                                  type="number" 
+                                  step="0.01" 
+                                  value={editSellMinAmount} 
+                                  onChange={(e) => setEditSellMinAmount(e.target.value)}
+                                  placeholder="0"
+                                  className="w-24 h-8 bg-background text-sm"
+                                />
+                                <span className="text-sm">Макс:</span>
+                                <Input 
+                                  type="number" 
+                                  step="0.01" 
+                                  value={editSellMaxAmount} 
+                                  onChange={(e) => setEditSellMaxAmount(e.target.value)}
+                                  placeholder="0"
+                                  className="w-24 h-8 bg-background text-sm"
+                                />
+                                <span className="text-sm">RUB</span>
+                              </div>
                             </div>
                           )}
                         </div>
@@ -193,24 +236,55 @@ export default function AdminRubCommissions() {
                         <div className="flex-1">
                           <p className="text-xs text-muted-foreground mb-2">Покупка (1 RUB = ? {crypto.code})</p>
                           {!isEditing ? (
-                            <div className="flex items-center gap-4 text-sm">
-                              <span>Комиссия:</span>
-                              <span className="font-mono font-semibold text-red-600">
-                                {parseFloat(buyRate.markupPercent.toString()).toFixed(2)}%
-                              </span>
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-4 text-sm">
+                                <span>Комиссия:</span>
+                                <span className="font-mono font-semibold text-red-600">
+                                  {parseFloat(buyRate.markupPercent.toString()).toFixed(2)}%
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-4 text-sm">
+                                <span>Лимиты:</span>
+                                <span className="font-mono">
+                                  {buyRate.minAmount ? parseFloat(buyRate.minAmount.toString()).toFixed(0) : '—'} - {buyRate.maxAmount ? parseFloat(buyRate.maxAmount.toString()).toFixed(0) : '—'} RUB
+                                </span>
+                              </div>
                             </div>
                           ) : (
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm">Комиссия:</span>
-                              <Input 
-                                type="number" 
-                                step="0.01" 
-                                value={editBuyMarkup} 
-                                onChange={(e) => setEditBuyMarkup(e.target.value)}
-                                placeholder="%"
-                                className="w-20 h-8 bg-background text-sm"
-                              />
-                              <span className="text-sm">%</span>
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm">Комиссия:</span>
+                                <Input 
+                                  type="number" 
+                                  step="0.01" 
+                                  value={editBuyMarkup} 
+                                  onChange={(e) => setEditBuyMarkup(e.target.value)}
+                                  placeholder="%"
+                                  className="w-20 h-8 bg-background text-sm"
+                                />
+                                <span className="text-sm">%</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm">Мин:</span>
+                                <Input 
+                                  type="number" 
+                                  step="0.01" 
+                                  value={editBuyMinAmount} 
+                                  onChange={(e) => setEditBuyMinAmount(e.target.value)}
+                                  placeholder="0"
+                                  className="w-24 h-8 bg-background text-sm"
+                                />
+                                <span className="text-sm">Макс:</span>
+                                <Input 
+                                  type="number" 
+                                  step="0.01" 
+                                  value={editBuyMaxAmount} 
+                                  onChange={(e) => setEditBuyMaxAmount(e.target.value)}
+                                  placeholder="0"
+                                  className="w-24 h-8 bg-background text-sm"
+                                />
+                                <span className="text-sm">RUB</span>
+                              </div>
                             </div>
                           )}
                         </div>

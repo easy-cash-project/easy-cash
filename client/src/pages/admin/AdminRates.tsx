@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, RefreshCw, Edit2, Save, X } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 // List of supported cryptocurrencies
@@ -27,6 +28,8 @@ export default function AdminRates() {
   
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editMarkup, setEditMarkup] = useState<string>("");
+  const [editMinAmount, setEditMinAmount] = useState<string>("");
+  const [editMaxAmount, setEditMaxAmount] = useState<string>("");
 
   const updateMutation = trpc.adminRates.update.useMutation({
     onSuccess: () => {
@@ -61,6 +64,8 @@ export default function AdminRates() {
   const handleEdit = (rate: any) => {
     setEditingId(rate.id);
     setEditMarkup(rate.markupPercent.toString());
+    setEditMinAmount(rate.minAmount?.toString() || "");
+    setEditMaxAmount(rate.maxAmount?.toString() || "");
   };
 
   const handleSave = () => {
@@ -69,6 +74,8 @@ export default function AdminRates() {
     updateMutation.mutate({
       id: editingId,
       markupPercent: editMarkup,
+      minAmount: editMinAmount || null,
+      maxAmount: editMaxAmount || null,
     });
   };
 
@@ -149,23 +156,46 @@ export default function AdminRates() {
                                   <span className="text-muted-foreground">₽</span>
                                 </div>
                               ) : isEditingCryptoToRub && dbCryptoToRub ? (
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm">Наценка:</span>
-                                  <Input 
-                                    type="number" 
-                                    step="0.01" 
-                                    value={editMarkup} 
-                                    onChange={(e) => setEditMarkup(e.target.value)}
-                                    placeholder="%"
-                                    className="w-20 h-8 bg-background text-sm"
-                                  />
-                                  <span className="text-sm">%</span>
-                                  <span className="text-sm text-muted-foreground">|</span>
-                                  <span className="text-sm">Итоговый:</span>
-                                  <span className="font-mono font-semibold text-primary text-sm">
-                                    {(parseFloat(rapiraCryptoToRub.rate.toString()) * (1 + parseFloat(editMarkup || "0") / 100)).toFixed(2)}
-                                  </span>
-                                  <span className="text-sm text-muted-foreground">₽</span>
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm">Наценка:</span>
+                                    <Input 
+                                      type="number" 
+                                      step="0.01" 
+                                      value={editMarkup} 
+                                      onChange={(e) => setEditMarkup(e.target.value)}
+                                      placeholder="%"
+                                      className="w-20 h-8 bg-background text-sm"
+                                    />
+                                    <span className="text-sm">%</span>
+                                    <span className="text-sm text-muted-foreground">|</span>
+                                    <span className="text-sm">Итоговый:</span>
+                                    <span className="font-mono font-semibold text-primary text-sm">
+                                      {(parseFloat(rapiraCryptoToRub.rate.toString()) * (1 + parseFloat(editMarkup || "0") / 100)).toFixed(2)}
+                                    </span>
+                                    <span className="text-sm text-muted-foreground">₽</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm">Мин:</span>
+                                    <Input 
+                                      type="number" 
+                                      step="0.01" 
+                                      value={editMinAmount} 
+                                      onChange={(e) => setEditMinAmount(e.target.value)}
+                                      placeholder="0"
+                                      className="w-24 h-8 bg-background text-sm"
+                                    />
+                                    <span className="text-sm">Макс:</span>
+                                    <Input 
+                                      type="number" 
+                                      step="0.01" 
+                                      value={editMaxAmount} 
+                                      onChange={(e) => setEditMaxAmount(e.target.value)}
+                                      placeholder="0"
+                                      className="w-24 h-8 bg-background text-sm"
+                                    />
+                                    <span className="text-sm">{crypto.code}</span>
+                                  </div>
                                 </div>
                               ) : null}
                             </div>
