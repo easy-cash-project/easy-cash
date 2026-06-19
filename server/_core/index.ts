@@ -67,13 +67,11 @@ async function initializeSeedData() {
         const existing = await db.select().from(currencies).where(eq(currencies.code, curr.code)).limit(1);
         if (existing.length > 0) {
           currencyMap[curr.code] = existing[0].id;
-          console.log(`[Init] Currency already exists: ${curr.code}`);
         } else {
           // Insert new currency
           const result = await db.insert(currencies).values(curr).returning();
           if (result && result.length > 0) {
             currencyMap[curr.code] = result[0].id;
-            console.log(`[Init] ✅ Currency seeded: ${curr.code} (ID: ${result[0].id})`);
           }
         }
       } catch (e) {
@@ -82,12 +80,10 @@ async function initializeSeedData() {
     }
 
     // Refresh currency map to ensure all IDs are available
-    console.log(`[Init] Refreshing currency map...`);
     const allCurrencies = await db.select().from(currencies);
     for (const curr of allCurrencies) {
       currencyMap[curr.code] = curr.id;
     }
-    console.log(`[Init] Currency map refreshed with ${Object.keys(currencyMap).length} currencies`);
 
     // Seed exchange rates using Drizzle ORM
     const cryptoCurrencies = ['USDT_TRC20', 'USDT_BEP20', 'USDT_SOL', 'USDT_TON', 'USDT_ERC20', 'BTC', 'ETH', 'LTC', 'TON', 'XMR', 'TRX'];
@@ -106,52 +102,38 @@ async function initializeSeedData() {
     };
 
     let ratesCreated = 0;
-    console.log(`[Init] Starting rates seeding. Currency map has ${Object.keys(currencyMap).length} currencies`);
-    console.log(`[Init] Currency map keys:`, Object.keys(currencyMap));
-    console.log(`[Init] RUB ID: ${currencyMap['RUB']}`);
     
     for (const fromCrypto of cryptoCurrencies) {
       const fromId = currencyMap[fromCrypto];
-      console.log(`[Init] Processing ${fromCrypto}: fromId=${fromId}, mockRate=${mockRates[fromCrypto]}`);
       if (!fromId) {
-        console.log(`[Init] ⚠️ No ID found for ${fromCrypto}`);
         continue;
       }
 
       const rubId = currencyMap['RUB'];
       const priceRub = mockRates[fromCrypto];
-      console.log(`[Init] Checking conditions: priceRub=${priceRub}, rubId=${rubId}, fromId=${fromId}`);
       if (!priceRub || !rubId) {
-        console.log(`[Init] ⚠️ Missing priceRub=${priceRub} or rubId=${rubId}`);
         continue;
       }
 
       // Create rate for crypto -> RUB
       try {
-        console.log(`[Init] About to query existing rate for ${fromCrypto} (${fromId}) -> RUB (${rubId})`);
         const existing = await db.select().from(exchangeRates)
           .where(and(eq(exchangeRates.fromCurrencyId, fromId), eq(exchangeRates.toCurrencyId, rubId)))
           .limit(1);
         
-        console.log(`[Init] Query result for ${fromCrypto} -> RUB: existing.length=${existing.length}`);
-        
         if (existing.length === 0) {
-          console.log(`[Init] Inserting rate: ${fromCrypto} (${fromId}) -> RUB (${rubId}), baseRate=${priceRub}`);
           try {
-            const result = await db.insert(exchangeRates).values({
+            await db.insert(exchangeRates).values({
               fromCurrencyId: fromId,
               toCurrencyId: rubId,
               baseRate: priceRub,
               markupPercent: 0,
               isActive: 1,
             });
-            console.log(`[Init] ✅ Rate seeded: ${fromCrypto} -> RUB, result:`, result);
             ratesCreated++;
           } catch (insertErr) {
             console.error(`[Init] ❌ Failed to insert rate ${fromCrypto} -> RUB:`, insertErr);
           }
-        } else {
-          console.log(`[Init] Rate already exists: ${fromCrypto} -> RUB`);
         }
 
         // Create rate for RUB -> crypto
@@ -168,7 +150,6 @@ async function initializeSeedData() {
             markupPercent: 0,
             isActive: 1,
           });
-          console.log(`[Init] ✅ Rate seeded: RUB -> ${fromCrypto}`);
           ratesCreated++;
         }
 
@@ -203,7 +184,9 @@ async function initializeSeedData() {
         console.error(`[Init] Error stack:`, e instanceof Error ? e.stack : 'No stack');
       }
     }
-    console.log(`[Init] Exchange rates seeded: ${ratesCreated} rates created`);
+    if (ratesCreated > 0) {
+      console.log(`[Init] Exchange rates seeded: ${ratesCreated} rates created`);
+    }
 
     // Seed deposit addresses using Drizzle ORM
     const addressesToSeed = [
@@ -224,7 +207,6 @@ async function initializeSeedData() {
       try {
         const currencyId = currencyMap[addr.currencyCode];
         if (!currencyId) {
-          console.log(`[Init] Currency not found for address: ${addr.currencyCode}`);
           continue;
         }
 
@@ -233,9 +215,7 @@ async function initializeSeedData() {
           .where(and(eq(depositAddresses.currencyId, currencyId), eq(depositAddresses.address, addr.address)))
           .limit(1);
         
-        if (existing.length > 0) {
-          console.log(`[Init] Address already exists for ${addr.currencyCode}`);
-        } else {
+        if (existing.length === 0) {
           // Insert new address
           await db.insert(depositAddresses).values({
             currencyId,
@@ -243,14 +223,11 @@ async function initializeSeedData() {
             label: addr.label,
             isActive: 1,
           });
-          console.log(`[Init] ✅ Address seeded: ${addr.currencyCode}`);
         }
       } catch (e) {
         console.error(`[Init] Error seeding address for ${addr.currencyCode}:`, e);
       }
     }
-
-    console.log("[Init] Seed data initialization completed!");
   } catch (error) {
     console.error("[Init] Error initializing seed data:", error);
   }
@@ -275,13 +252,9 @@ async function initializeAdminUser() {
       
       // If password looks like plain text (not a bcrypt hash), update it
       if (user.password && !user.password.startsWith('$2')) {
-        console.log("[Init] Admin user exists with plain-text password, updating to bcrypt hash...");
         await db.update(users)
           .set({ password: hashedPassword })
           .where(eq(users.openId, 'BlackSupport'));
-        console.log("[Init] Admin password updated to bcrypt hash!");
-      } else {
-        console.log("[Init] Admin user already exists with proper password hash");
       }
       return;
     }

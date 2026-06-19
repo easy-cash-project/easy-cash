@@ -76,7 +76,7 @@ export default function AdminOrders() {
           </Card>
         ) : (
           <div className="space-y-3">
-            {orders.map((order) => (
+            {orders?.map((order: any) => (
               <Card key={order.id} className="p-4 bg-card border-border/50 hover:border-primary/20 transition-all duration-200 hover:shadow-lg hover:shadow-primary/5">
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-2 flex-1 min-w-0">

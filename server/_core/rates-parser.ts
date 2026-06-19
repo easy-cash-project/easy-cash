@@ -128,36 +128,49 @@ async function fetchCoinGeckoPrices(): Promise<Map<string, { usd: number; change
 /**
  * Fetch TON price from OKX API
  */
-async function fetchOKXTonPrice(): Promise<number | null> {
-  try {
-    const response = await fetch(
-      'https://www.okx.com/api/v5/market/ticker?instId=TON-USDT',
-      {
-        headers: {
-          'Accept': 'application/json',
-        },
+async function fetchOKXTonPrice(retries = 3): Promise<number | null> {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      
+      const response = await fetch(
+        'https://www.okx.com/api/v5/market/ticker?instId=TON-USDT',
+        {
+          headers: {
+            'Accept': 'application/json',
+          },
+          signal: controller.signal,
+        }
+      );
+
+      clearTimeout(timeout);
+
+      if (!response.ok) {
+        throw new Error(`OKX API error: ${response.status}`);
       }
-    );
 
-    if (!response.ok) {
-      throw new Error(`OKX API error: ${response.status}`);
-    }
+      const data: any = await response.json();
+      
+      if (data.code === '0' && data.data && data.data.length > 0) {
+        const lastPrice = parseFloat(data.data[0].last);
+        if (lastPrice > 0) {
+          console.log('[RatesParser] TON price from OKX:', lastPrice, 'USDT');
+          return lastPrice;
+        }
+      }
 
-    const data: any = await response.json();
-    
-    if (data.code === '0' && data.data && data.data.length > 0) {
-      const lastPrice = parseFloat(data.data[0].last);
-      if (lastPrice > 0) {
-        console.log('[Init] TON price from OKX:', lastPrice, 'USDT');
-        return lastPrice;
+      return null;
+    } catch (error) {
+      console.warn(`[RatesParser] OKX API attempt ${attempt}/${retries} failed:`, error);
+      if (attempt < retries) {
+        await new Promise(r => setTimeout(r, 1000 * attempt));
       }
     }
-
-    return null;
-  } catch (error) {
-    console.error('Error fetching OKX TON price:', error);
-    return null;
   }
+  
+  console.error('[RatesParser] Failed to fetch TON price from OKX after retries');
+  return null;
 }
 
 /**

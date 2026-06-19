@@ -13,7 +13,7 @@ import AdminOrders from "./pages/admin/AdminOrders";
 import AdminRates from "./pages/admin/AdminRates";
 import AdminAddresses from "./pages/admin/AdminAddresses";
 import AdminUsers from "./pages/admin/AdminUsers";
-import AdminCurrencies from "./pages/AdminCurrencies";
+import AdminCurrencies from "./pages/admin/AdminCurrencies";
 import AdminRubCommissions from "./pages/admin/AdminRubCommissions";
 import AdminTelegram from "./pages/admin/AdminTelegram";
 

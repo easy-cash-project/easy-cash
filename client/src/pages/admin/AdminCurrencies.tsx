@@ -149,7 +149,7 @@ export default function AdminCurrencies() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {currencies.map((c) => (
+            {currencies?.map((c: any) => (
               <Card key={c.id} className="p-3 bg-card border-border/50">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
