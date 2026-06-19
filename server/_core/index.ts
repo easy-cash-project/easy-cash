@@ -46,16 +46,18 @@ async function initializeSeedData() {
 
     // Seed currencies using Drizzle ORM
     const currenciesToSeed = [
-      { code: 'USDT_TRC20', name: 'USDT (Tron)', type: 'crypto' as const, network: 'TRC20', symbol: '₮', isActive: 1 },
-      { code: 'USDT_BEP20', name: 'USDT (BSC)', type: 'crypto' as const, network: 'BEP20', symbol: '₮', isActive: 1 },
-      { code: 'USDT_SOL', name: 'USDT (Solana)', type: 'crypto' as const, network: 'SOL', symbol: '₮', isActive: 1 },
-      { code: 'USDT_TON', name: 'USDT (Ton)', type: 'crypto' as const, network: 'TON', symbol: '₮', isActive: 1 },
-      { code: 'BTC', name: 'Bitcoin', type: 'crypto' as const, network: 'BTC', symbol: '₿', isActive: 1 },
-      { code: 'ETH', name: 'Ethereum', type: 'crypto' as const, network: 'ETH', symbol: 'Ξ', isActive: 1 },
-      { code: 'LTC', name: 'Litecoin', type: 'crypto' as const, network: 'LTC', symbol: 'Ł', isActive: 1 },
-      { code: 'TON', name: 'Toncoin', type: 'crypto' as const, network: 'TON', symbol: '💎', isActive: 1 },
-      { code: 'XMR', name: 'Monero', type: 'crypto' as const, network: 'XMR', symbol: 'ɱ', isActive: 1 },
-      { code: 'RUB', name: 'Russian Ruble', type: 'fiat' as const, network: 'RUB', symbol: '₽', isActive: 1 },
+      { code: 'BTC', name: 'Bitcoin', type: 'crypto' as const, network: null, symbol: '₿', isActive: 1 },
+      { code: 'ETH', name: 'Ethereum', type: 'crypto' as const, network: null, symbol: 'Ξ', isActive: 1 },
+      { code: 'LTC', name: 'Litecoin', type: 'crypto' as const, network: null, symbol: 'Ł', isActive: 1 },
+      { code: 'XMR', name: 'Monero', type: 'crypto' as const, network: null, symbol: 'ɱ', isActive: 1 },
+      { code: 'TON', name: 'Toncoin', type: 'crypto' as const, network: null, symbol: '💎', isActive: 1 },
+      { code: 'TRX', name: 'Tron', type: 'crypto' as const, network: null, symbol: 'T', isActive: 1 },
+      { code: 'USDT', name: 'Tether ERC20', type: 'crypto' as const, network: 'ERC20', symbol: '₮', isActive: 1 },
+      { code: 'USDT', name: 'Tether TRC20', type: 'crypto' as const, network: 'TRC20', symbol: '₮', isActive: 1 },
+      { code: 'USDT', name: 'Tether BEP20', type: 'crypto' as const, network: 'BEP20', symbol: '₮', isActive: 1 },
+      { code: 'USDT', name: 'Tether SOL', type: 'crypto' as const, network: 'SOL', symbol: '₮', isActive: 1 },
+      { code: 'USDT', name: 'Tether TON', type: 'crypto' as const, network: 'TON', symbol: '₮', isActive: 1 },
+      { code: 'RUB', name: 'Russian Ruble', type: 'fiat' as const, network: null, symbol: '₽', isActive: 1 },
     ];
 
     let currencyMap: Record<string, number> = {};
@@ -88,17 +90,14 @@ async function initializeSeedData() {
     console.log(`[Init] Currency map refreshed with ${Object.keys(currencyMap).length} currencies`);
 
     // Seed exchange rates using Drizzle ORM
-    const cryptoCurrencies = ['USDT_TRC20', 'USDT_BEP20', 'USDT_SOL', 'USDT_TON', 'BTC', 'ETH', 'LTC', 'TON', 'XMR'];
+    const cryptoCurrencies = ['BTC', 'ETH', 'LTC', 'TON', 'XMR', 'TRX'];
     const mockRates: Record<string, number> = {
-      'USDT_TRC20': 75,
-      'USDT_BEP20': 75,
-      'USDT_SOL': 75,
-      'USDT_TON': 75,
       'BTC': 9250000,
       'ETH': 350000,
       'LTC': 12500,
       'TON': 550,
       'XMR': 25000,
+      'TRX': 8,
     };
 
     let ratesCreated = 0;
