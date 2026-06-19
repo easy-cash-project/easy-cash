@@ -222,6 +222,21 @@ export default function Home() {
       toast.error("Курс обмена недоступен для этой пары");
       return;
     }
+    
+    // Validate min/max amounts
+    const giveAmountNum = parseFloat(giveAmount);
+    const rate = rateQuery.data as any;
+    
+    if (rate.minAmount && giveAmountNum < parseFloat(rate.minAmount)) {
+      toast.error(`Минимальная сумма: ${rate.minAmount}`);
+      return;
+    }
+    
+    if (rate.maxAmount && giveAmountNum > parseFloat(rate.maxAmount)) {
+      toast.error(`Максимальная сумма: ${rate.maxAmount}`);
+      return;
+    }
+    
     createOrderMutation.mutate({
       giveCurrencyId,
       giveAmount,
