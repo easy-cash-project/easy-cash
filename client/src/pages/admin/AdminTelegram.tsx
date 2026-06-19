@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
+import AdminLayout from "@/components/AdminLayout";
 
 export default function AdminTelegram() {
   const [botToken, setBotToken] = useState("");
@@ -50,7 +51,8 @@ export default function AdminTelegram() {
   };
 
   return (
-    <div className="p-6 max-w-2xl">
+    <AdminLayout>
+      <div className="p-6 max-w-2xl">
       <h1 className="text-2xl font-bold mb-2">Telegram уведомления</h1>
       <p className="text-gray-400 mb-6">
         Настройте Telegram бота для получения уведомлений о новых заявках на обмен.
@@ -141,6 +143,7 @@ export default function AdminTelegram() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </AdminLayout>
   );
 }
