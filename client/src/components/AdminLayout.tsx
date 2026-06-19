@@ -2,7 +2,7 @@ import { ReactNode, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
-import { ArrowLeftRight, ClipboardList, DollarSign, Wallet, Coins, Users, Loader2, Menu, X, TrendingUp } from "lucide-react";
+import { ArrowLeftRight, ClipboardList, DollarSign, Wallet, Coins, Users, Loader2, Menu, X, TrendingUp, Send } from "lucide-react";
 
 const navItems = [
   { href: "/moneymaker777/orders", label: "Заявки", icon: ClipboardList },
@@ -11,6 +11,7 @@ const navItems = [
   { href: "/moneymaker777/addresses", label: "Адреса", icon: Wallet },
   { href: "/moneymaker777/currencies", label: "Валюты", icon: Coins },
   { href: "/moneymaker777/users", label: "Пользователи", icon: Users },
+  { href: "/moneymaker777/telegram", label: "Telegram", icon: Send },
 ];
 
 export default function AdminLayout({ children }: { children: ReactNode }) {

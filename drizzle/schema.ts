@@ -108,3 +108,19 @@ export const orders = pgTable("orders", {
 
 export type Order = typeof orders.$inferSelect;
 export type InsertOrder = typeof orders.$inferInsert;
+
+/**
+ * Telegram notification configuration.
+ * Stores bot token and chat ID for sending order notifications.
+ */
+export const telegramConfig = pgTable("telegram_config", {
+  id: serial("id").primaryKey(),
+  botToken: varchar("botToken", { length: 256 }).notNull(),
+  chatId: varchar("chatId", { length: 64 }).notNull(),
+  isActive: integer("isActive").default(1).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+
+export type TelegramConfig = typeof telegramConfig.$inferSelect;
+export type InsertTelegramConfig = typeof telegramConfig.$inferInsert;

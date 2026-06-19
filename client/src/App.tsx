@@ -15,6 +15,7 @@ import AdminAddresses from "./pages/admin/AdminAddresses";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminCurrencies from "./pages/AdminCurrencies";
 import AdminRubCommissions from "./pages/admin/AdminRubCommissions";
+import AdminTelegram from "./pages/admin/AdminTelegram";
 
 function Router() {
   return (
@@ -32,6 +33,7 @@ function Router() {
       <Route path={"/moneymaker777/addresses"} component={AdminAddresses} />
       <Route path={"/moneymaker777/currencies"} component={AdminCurrencies} />
       <Route path={"/moneymaker777/users"} component={AdminUsers} />
+      <Route path={"/moneymaker777/telegram"} component={AdminTelegram} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>

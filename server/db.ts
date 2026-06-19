@@ -5,8 +5,8 @@ import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
 import path from "path";
 import bcrypt from "bcrypt";
-import { InsertUser, users, currencies, exchangeRates, depositAddresses, orders } from "../drizzle/schema";
-import type { InsertCurrency, InsertExchangeRate, InsertDepositAddress, InsertOrder } from "../drizzle/schema";
+import { InsertUser, users, currencies, exchangeRates, depositAddresses, orders, telegramConfig } from "../drizzle/schema";
+import type { InsertCurrency, InsertExchangeRate, InsertDepositAddress, InsertOrder, InsertTelegramConfig } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 // Password hashing utilities
@@ -325,4 +325,55 @@ export async function updateOrderStatus(id: number, status: string, adminNote?: 
     updateData.adminNote = adminNote;
   }
   await db.update(orders).set(updateData).where(eq(orders.id, id));
+}
+
+// ============ TELEGRAM CONFIG ============
+
+export async function getTelegramConfig() {
+  // First try environment variables (fallback)
+  const envToken = process.env.TELEGRAM_BOT_TOKEN;
+  const envChatId = process.env.TELEGRAM_CHAT_ID;
+
+  try {
+    const db = await getDb();
+    if (!db) {
+      if (envToken && envChatId) {
+        return { botToken: envToken, chatId: envChatId, isActive: 1 };
+      }
+      return null;
+    }
+    const result = await db.select().from(telegramConfig).where(eq(telegramConfig.isActive, 1)).limit(1);
+    if (result.length > 0) {
+      return result[0];
+    }
+  } catch (error) {
+    console.warn("[Database] getTelegramConfig error:", error);
+  }
+
+  // Fallback to env variables
+  if (envToken && envChatId) {
+    return { botToken: envToken, chatId: envChatId, isActive: 1 };
+  }
+  return null;
+}
+
+export async function upsertTelegramConfig(data: { botToken: string; chatId: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Check if config exists
+  const existing = await db.select().from(telegramConfig).limit(1);
+  if (existing.length > 0) {
+    await db.update(telegramConfig)
+      .set({ botToken: data.botToken, chatId: data.chatId, updatedAt: new Date() })
+      .where(eq(telegramConfig.id, existing[0].id));
+    return existing[0].id;
+  } else {
+    const result = await db.insert(telegramConfig).values({
+      botToken: data.botToken,
+      chatId: data.chatId,
+      isActive: 1,
+    }).returning();
+    return result[0].id;
+  }
 }

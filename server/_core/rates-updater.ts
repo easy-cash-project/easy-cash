@@ -3,9 +3,10 @@
  * Fetches rates from Rapira API and CoinGecko, then updates the database
  */
 
+import { eq, and } from 'drizzle-orm';
 import { getDb } from '../db';
+import { currencies, exchangeRates } from '../../drizzle/schema';
 import { buildRatesMatrix } from './rates-parser';
-import type { ExchangeRate } from './rates-parser';
 
 let updateInterval: NodeJS.Timeout | null = null;
 let isUpdating = false;
@@ -36,13 +37,11 @@ export async function updateExchangeRates(): Promise<void> {
       return;
     }
 
-    // Get all currencies from database
-    const currencies = await db.query(`
-      SELECT id, code FROM currencies
-    `);
+    // Get all currencies from database using Drizzle ORM
+    const allCurrencies = await db.select({ id: currencies.id, code: currencies.code }).from(currencies);
 
     const currencyMap = new Map<string, number>();
-    currencies.forEach((c: any) => {
+    allCurrencies.forEach((c) => {
       currencyMap.set(c.code, c.id);
     });
 
@@ -63,39 +62,45 @@ export async function updateExchangeRates(): Promise<void> {
       }
 
       try {
-        // Check if rate exists
-        const existing = await db.query(`
-          SELECT id, "markupPercent", "minAmount", "maxAmount" FROM exchange_rates 
-          WHERE "fromCurrencyId" = $1 AND "toCurrencyId" = $2
-        `, [fromCurrencyId, toCurrencyId]);
+        // Check if rate exists using Drizzle ORM
+        const existing = await db.select().from(exchangeRates)
+          .where(and(
+            eq(exchangeRates.fromCurrencyId, fromCurrencyId),
+            eq(exchangeRates.toCurrencyId, toCurrencyId)
+          ))
+          .limit(1);
 
         if (existing.length > 0) {
           // Update existing rate - preserve markup, min/max
-          const existingRate = existing[0];
-          await db.query(`
-            UPDATE exchange_rates 
-            SET "baseRate" = $1, "updatedAt" = NOW()
-            WHERE "fromCurrencyId" = $2 AND "toCurrencyId" = $3
-          `, [rate.rate.toString(), fromCurrencyId, toCurrencyId]);
+          await db.update(exchangeRates)
+            .set({ baseRate: rate.rate.toString(), updatedAt: new Date() })
+            .where(and(
+              eq(exchangeRates.fromCurrencyId, fromCurrencyId),
+              eq(exchangeRates.toCurrencyId, toCurrencyId)
+            ));
           updatedCount++;
         } else {
           // Insert new rate with default markup based on currency pair
           let defaultMarkup = '0';
           const fromCode = rate.from;
           const toCode = rate.to;
-          
+
           // 20% for RUB pairs, 3% for crypto pairs
           if (fromCode === 'RUB' || toCode === 'RUB') {
             defaultMarkup = '20';
           } else {
             defaultMarkup = '3';
           }
-          
-          await db.query(`
-            INSERT INTO exchange_rates 
-            ("fromCurrencyId", "toCurrencyId", "baseRate", "markupPercent", "isActive", "createdAt", "updatedAt")
-            VALUES ($1, $2, $3, $4, 1, NOW(), NOW())
-          `, [fromCurrencyId, toCurrencyId, rate.rate.toString(), defaultMarkup]);
+
+          await db.insert(exchangeRates).values({
+            fromCurrencyId,
+            toCurrencyId,
+            baseRate: rate.rate.toString(),
+            markupPercent: defaultMarkup,
+            isActive: 1,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          });
           createdCount++;
         }
       } catch (error) {

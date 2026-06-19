@@ -12,7 +12,8 @@ import {
   getAllRates, getRateForPair, createRate, updateRate, deleteRate,
   getAllAddresses, getAddressesForCurrency, createAddress, updateAddress, deleteAddress,
   getAllOrders, getOrderByPublicId, createOrder, updateOrderStatus,
-  createUser, getUserByOpenId, updateUser, getAllUsers, deleteUserById
+  createUser, getUserByOpenId, updateUser, getAllUsers, deleteUserById,
+  getTelegramConfig, upsertTelegramConfig
 } from "./db";
 import { notifyOwner } from "./_core/notification";
 import { buildRatesMatrix, getExchangeRate, getRatesFrom, getRatesTo, ratesMatrixCache, getSupportedCurrencies } from "./_core/rates-parser";
@@ -313,6 +314,44 @@ export const appRouter = router({
           console.error("Failed to notify owner:", e);
         }
 
+        // Send Telegram notification
+        try {
+          const tgConfig = await getTelegramConfig();
+          if (tgConfig && tgConfig.botToken && tgConfig.chatId) {
+            const giveCode = giveCurrency?.code || "?";
+            const receiveCode = receiveCurrency?.code || "?";
+            const giveName = giveCurrency?.name || "?";
+            const receiveName = receiveCurrency?.name || "?";
+            const message = [
+              `🔔 *Новая заявка #${orderId}*`,
+              ``,
+              `👤 Telegram: ${input.telegramHandle}`,
+              `🔄 Направление: ${giveName} (${giveCode}) → ${receiveName} (${receiveCode})`,
+              `💰 Сумма: ${input.giveAmount} ${giveCode} → ${input.receiveAmount} ${receiveCode}`,
+              `📍 Реквизиты для выплаты: \`${input.payoutDetails}\``,
+              `📥 Адрес депозита: \`${depositAddr.address}\``,
+            ].join("\n");
+            const url = `https://api.telegram.org/bot${tgConfig.botToken}/sendMessage`;
+            const response = await fetch(url, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                chat_id: tgConfig.chatId,
+                text: message,
+                parse_mode: "Markdown",
+              }),
+            });
+            const result = await response.json() as { ok: boolean; description?: string };
+            if (!result.ok) {
+              console.error("[Telegram] Failed to send notification:", result.description);
+            } else {
+              console.log("[Telegram] Notification sent for order:", orderId);
+            }
+          }
+        } catch (e) {
+          console.error("[Telegram] Error sending notification:", e);
+        }
+
         return {
           orderId,
           depositAddress: depositAddr.address,
@@ -592,6 +631,52 @@ export const appRouter = router({
         return { success: true };
       }),
   }),
+  // ============ ADMIN: Telegram Config ============
+  adminTelegram: router({
+    getConfig: adminProcedure.query(async () => {
+      const config = await getTelegramConfig();
+      if (!config) return null;
+      // Mask token for security
+      return {
+        botToken: config.botToken,
+        chatId: config.chatId,
+        isActive: config.isActive,
+      };
+    }),
+    updateConfig: adminProcedure
+      .input(z.object({
+        botToken: z.string().min(10, "Неверный формат Bot Token"),
+        chatId: z.string().min(1, "Укажите Chat ID"),
+      }))
+      .mutation(async ({ input }) => {
+        await upsertTelegramConfig({
+          botToken: input.botToken,
+          chatId: input.chatId,
+        });
+        return { success: true };
+      }),
+    testNotification: adminProcedure.mutation(async () => {
+      const config = await getTelegramConfig();
+      if (!config || !config.botToken || !config.chatId) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Telegram не настроен" });
+      }
+      const message = `✅ *Тестовое уведомление*\n\nTelegram уведомления работают корректно!`;
+      const url = `https://api.telegram.org/bot${config.botToken}/sendMessage`;
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: config.chatId,
+          text: message,
+          parse_mode: "Markdown",
+        }),
+      });
+      const result = await response.json() as { ok: boolean; description?: string };
+      if (!result.ok) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: result.description || "Ошибка отправки" });
+      }
+      return { success: true };
+    }),
+  }),
 });
-
 export type AppRouter = typeof appRouter;
